@@ -18,6 +18,7 @@ const App = () => {
   const [leftWidth, setLeftWidth] = useState(40); // left panel width in percentage (default 40%)
   const [trayHeight, setTrayHeight] = useState(160); // compliance tray height in pixels (default 160px)
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1280);
+  const [activeMobileTab, setActiveMobileTab] = useState("input"); // "input" | "results" on mobile
 
   useEffect(() => {
     const handleResize = () => {
@@ -95,6 +96,11 @@ const App = () => {
         candidates,
       });
       setRankedResults(normalizeRankedResults(results, candidates));
+      
+      // Auto switch to results on mobile after a run completes
+      if (!isDesktop) {
+        setActiveMobileTab("results");
+      }
     } catch (err) {
       const fallback = computeFallbackRanking(candidates);
       setRankedResults(fallback);
@@ -103,75 +109,152 @@ const App = () => {
           ? `API unavailable. Loaded local ranking. ${err.message}`
           : "API unavailable. Loaded local ranking."
       );
+      if (!isDesktop) {
+        setActiveMobileTab("results");
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="h-screen overflow-hidden bg-midnight">
-      <div className={`h-full ${isDesktop ? "flex flex-row" : "flex flex-col overflow-y-auto"}`}>
-        {/* Left Column (Inputs) */}
-        <section
-          className="h-full border-r border-borderline bg-canvas/80 shrink-0"
-          style={isDesktop ? { width: `${leftWidth}%` } : { width: "100%" }}
-        >
-          <InputPanel
-            jobDescription={jobDescription}
-            setJobDescription={setJobDescription}
-            candidates={candidates}
-            setCandidates={setCandidates}
-            onRun={handleRun}
-            isLoading={isLoading}
-            error={error}
-            setError={setError}
-          />
-        </section>
-
-        {/* Vertical Resizer Handle */}
-        {isDesktop && (
-          <div
-            onMouseDown={startResizingWidth}
-            className="w-1 cursor-col-resize bg-slate-900 border-x border-slate-950 hover:bg-emerald/75 transition-colors h-full flex items-center justify-center relative z-20 group shrink-0"
-            title="Drag horizontally to resize panels"
+    <div className="h-screen overflow-hidden bg-midnight flex flex-col">
+      {/* Mobile Tab Switcher */}
+      {!isDesktop && (
+        <div className="flex bg-slate-950 border-b border-borderline h-12 shrink-0">
+          <button
+            type="button"
+            onClick={() => setActiveMobileTab("input")}
+            className={`flex-1 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
+              activeMobileTab === "input"
+                ? "bg-slate-900 text-emerald border-b-2 border-b-emerald"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
           >
-            <div className="absolute h-10 w-1 rounded-full bg-slate-700 group-hover:bg-emerald transition-colors" />
+            <span>Configure Matrix</span>
+            <span className="px-1.5 py-0.5 rounded-full text-[9px] bg-slate-950 border border-slate-800 text-slate-400 font-mono">
+              {candidates.length}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveMobileTab("results")}
+            className={`flex-1 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
+              activeMobileTab === "results"
+                ? "bg-slate-900 text-emerald border-b-2 border-b-emerald"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <span>Ranked Shortlist</span>
+            <span className="px-1.5 py-0.5 rounded-full text-[9px] bg-slate-950 border border-slate-800 text-slate-400 font-mono">
+              {rankedResults.length}
+            </span>
+          </button>
+        </div>
+      )}
+
+      {/* Main Workspace */}
+      <div className={`flex-1 min-h-0 ${isDesktop ? "flex flex-row" : "relative"}`}>
+        {isDesktop ? (
+          <>
+            {/* Left Column (Inputs) */}
+            <section
+              className="h-full border-r border-borderline bg-canvas/80 shrink-0"
+              style={{ width: `${leftWidth}%` }}
+            >
+              <InputPanel
+                jobDescription={jobDescription}
+                setJobDescription={setJobDescription}
+                candidates={candidates}
+                setCandidates={setCandidates}
+                onRun={handleRun}
+                isLoading={isLoading}
+                error={error}
+                setError={setError}
+              />
+            </section>
+
+            {/* Vertical Resizer Handle */}
+            <div
+              onMouseDown={startResizingWidth}
+              className="w-1 cursor-col-resize bg-slate-900 border-x border-slate-950 hover:bg-emerald/75 transition-colors h-full flex items-center justify-center relative z-20 group shrink-0"
+              title="Drag horizontally to resize panels"
+            >
+              <div className="absolute h-10 w-1 rounded-full bg-slate-700 group-hover:bg-emerald transition-colors" />
+            </div>
+
+            {/* Right Column (Results + Compliance) */}
+            <section
+              className="h-full flex flex-col min-h-0 overflow-hidden"
+              style={{ width: `${100 - leftWidth}%` }}
+            >
+              <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                <ResultsPanel
+                  rankedResults={rankedResults}
+                  candidates={candidates}
+                  isLoading={isLoading}
+                  onSelectCandidate={setSelectedCandidateId}
+                />
+              </div>
+
+              {/* Horizontal Resizer Handle */}
+              <div
+                onMouseDown={startResizingHeight}
+                className="h-1 cursor-row-resize bg-slate-900 border-y border-slate-950 hover:bg-emerald/75 transition-colors w-full flex items-center justify-center relative z-20 group shrink-0"
+                title="Drag vertically to resize Compliance details"
+              >
+                <div className="absolute w-12 h-1 rounded-full bg-slate-700 group-hover:bg-emerald transition-colors" />
+              </div>
+
+              {/* Compliance Details Container */}
+              <div
+                style={{ height: `${trayHeight}px` }}
+                className="shrink-0 overflow-y-auto custom-scrollbar bg-canvas"
+              >
+                <ComplianceTray rankedResults={rankedResults} />
+              </div>
+            </section>
+          </>
+        ) : (
+          /* Mobile Layout Workspace */
+          <div className="absolute inset-0 flex flex-col min-h-0 overflow-hidden">
+            {activeMobileTab === "input" ? (
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                <InputPanel
+                  jobDescription={jobDescription}
+                  setJobDescription={setJobDescription}
+                  candidates={candidates}
+                  setCandidates={setCandidates}
+                  onRun={handleRun}
+                  isLoading={isLoading}
+                  error={error}
+                  setError={setError}
+                />
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+                  <ResultsPanel
+                    rankedResults={rankedResults}
+                    candidates={candidates}
+                    isLoading={isLoading}
+                    onSelectCandidate={setSelectedCandidateId}
+                  />
+                </div>
+                {/* Collapsible compliance details for mobile */}
+                <details className="shrink-0 border-t border-borderline bg-slate-950 group">
+                  <summary className="px-4 py-3 text-xs font-mono font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:bg-slate-900/60 flex justify-between items-center select-none">
+                    <span>Technical Trace (Compliance)</span>
+                    <span className="text-[10px] text-slate-500 group-open:rotate-180 transition-transform duration-200">▼</span>
+                  </summary>
+                  <div className="max-h-[220px] overflow-y-auto custom-scrollbar bg-canvas">
+                    <ComplianceTray rankedResults={rankedResults} />
+                  </div>
+                </details>
+              </div>
+            )}
           </div>
         )}
-
-        {/* Right Column (Results + Compliance) */}
-        <section
-          className="h-full flex flex-col min-h-0 overflow-hidden"
-          style={isDesktop ? { width: `${100 - leftWidth}%` } : { width: "100%" }}
-        >
-          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-            <ResultsPanel
-              rankedResults={rankedResults}
-              candidates={candidates}
-              isLoading={isLoading}
-              onSelectCandidate={setSelectedCandidateId}
-            />
-          </div>
-
-          {/* Horizontal Resizer Handle */}
-          {isDesktop && (
-            <div
-              onMouseDown={startResizingHeight}
-              className="h-1 cursor-row-resize bg-slate-900 border-y border-slate-950 hover:bg-emerald/75 transition-colors w-full flex items-center justify-center relative z-20 group shrink-0"
-              title="Drag vertically to resize Compliance details"
-            >
-              <div className="absolute w-12 h-1 rounded-full bg-slate-700 group-hover:bg-emerald transition-colors" />
-            </div>
-          )}
-
-          {/* Compliance Details Container */}
-          <div
-            style={isDesktop ? { height: `${trayHeight}px` } : { height: "auto" }}
-            className="shrink-0 overflow-y-auto custom-scrollbar bg-canvas"
-          >
-            <ComplianceTray rankedResults={rankedResults} />
-          </div>
-        </section>
       </div>
 
       {selectedCandidate && (
