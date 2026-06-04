@@ -1,139 +1,94 @@
-# Resume Ranker — Backend
+# Resume Ranker — Frontend
 
-> FastAPI ranking engine that scores and ranks candidates against a Job Description using semantic similarity + multi-signal scoring.
+> AI-powered recruiter UI — paste a Job Description, upload candidates, get an intelligently ranked shortlist.
 
-Built for a hackathon. Deployed on Render.
+Built for a hackathon. Deployed on Vercel.
 
 ---
 
 ## Tech Stack
 
-- Python + FastAPI
-- sentence-transformers (`all-MiniLM-L6-v2`)
-- scikit-learn (cosine similarity)
-- Deployed on Render (free tier)
+- React + Vite
+- Tailwind CSS
+- Connects to [resume-ranker-backend](https://github.com/your-username/resume-ranker-backend)
 
 ---
 
 ## Getting Started
 
 ```bash
-git clone https://github.com/your-username/resume-ranker-backend
-cd resume-ranker-backend
-pip install -r requirements.txt
+git clone https://github.com/your-username/resume-ranker-frontend
+cd resume-ranker-frontend
+npm install
+```
+
+Create a `.env` file:
+
+```
+VITE_API_URL=http://localhost:8000
 ```
 
 Run locally:
 
 ```bash
-uvicorn app.main:app --reload
-```
-
-API docs available at: `http://localhost:8000/docs`
-
----
-
-## API
-
-### `POST /rank`
-
-Ranks a list of candidates against a job description.
-
-**Request body:**
-```json
-{
-  "job_description": "Looking for a Senior ML Engineer with 5+ years...",
-  "candidates": [ ...array of candidate JSON objects... ]
-}
-```
-
-**Response:**
-```json
-{
-  "ranked_candidates": [
-    {
-      "rank": 1,
-      "candidate_id": "CAND_0000001",
-      "name": "Ira Vora",
-      "overall_score": 82.4,
-      "score_breakdown": {
-        "semantic_fit": 88.1,
-        "skill_match": 74.2,
-        "experience": 91.0,
-        "activity_signal": 63.5
-      },
-      "top_matching_skills": ["NLP", "Fine-tuning LLMs", "Milvus"],
-      "why_ranked": "Strong semantic fit with JD..."
-    }
-  ],
-  "total_candidates": 50,
-  "processing_time_ms": 1240
-}
-```
-
-### `GET /health`
-
-```json
-{ "status": "ok" }
+npm run dev
 ```
 
 ---
 
-## Scoring Model
+## How It Works
 
-Final score is a weighted combination of 4 signals:
+1. Paste a Job Description into the left panel
+2. Upload a candidates JSON file (or paste JSON directly)
+3. Hit **Rank Candidates**
+4. View the ranked shortlist with score breakdowns on the right
 
-| Signal | Weight | Method |
-|--------|--------|--------|
-| Semantic Fit | 40% | Cosine similarity via sentence-transformers |
-| Skill Match | 30% | Keyword overlap + proficiency + endorsements |
-| Experience | 20% | Years of experience vs JD requirement |
-| Activity Signal | 10% | Open to work, last active, GitHub score |
+Each candidate card shows:
+- Overall score (0–100)
+- Breakdown: Skill Match / Semantic Fit / Experience / Activity
+- Top matching skills
 
 ---
 
 ## Project Structure
 
 ```
-app/
-├── main.py              # FastAPI app + routes
-├── ranker.py            # Scoring pipeline
-├── embedder.py          # Sentence transformer wrapper
-├── skill_extractor.py   # JD keyword extraction
-└── models.py            # Pydantic schemas
+src/
+├── components/
+│   ├── InputPanel.jsx       # JD + file upload
+│   ├── ResultsPanel.jsx     # Ranked list
+│   ├── CandidateCard.jsx    # Individual candidate card
+│   ├── CandidateModal.jsx   # Expanded detail view
+│   └── ScoreBar.jsx         # Visual score breakdown
+├── api/
+│   └── rankApi.js           # API call to backend
+├── App.jsx
+└── main.jsx
 ```
 
 ---
 
-## Deployment (Render)
+## Deployment (Vercel)
 
 1. Push to GitHub
-2. New Web Service on [render.com](https://render.com)
-3. Connect this repo — Render picks up `render.yaml` automatically
-4. First deploy downloads the model (~90MB), takes ~2 min
-5. Copy the live URL → set as `VITE_API_URL` in the frontend
-
-**Note:** Render free tier spins down after 15 min of inactivity. First request after sleep takes ~30s to wake up.
+2. Import on [vercel.com](https://vercel.com)
+3. Add environment variable:
+   ```
+   VITE_API_URL=https://your-backend.onrender.com
+   ```
+4. Deploy — every push to `main` auto-deploys
 
 ---
 
-## Dependencies
+## Environment Variables
 
-```
-fastapi
-uvicorn
-sentence-transformers
-numpy
-scikit-learn
-pydantic
-python-dateutil
-```
-
-Install: `pip install -r requirements.txt`
+| Variable | Description |
+|----------|-------------|
+| `VITE_API_URL` | Backend API base URL |
 
 ---
 
 ## Related
 
-- [resume-ranker-frontend](https://github.com/your-username/resume-ranker-frontend) — React UI on Vercel
+- [resume-ranker-backend](https://github.com/your-username/resume-ranker-backend) — FastAPI ranking engine
 - 
