@@ -1,171 +1,272 @@
-# PRD — RRR Frontend (Recruiter Dashboard)
+# PRD - RRR Frontend and Ranking Flow
 
 **Repo:** `RRR-Resume-Ranker-Recruiter-Frontend`  
-**Hackathon:** Hack2Skill — Intelligent Candidate Discovery & Ranking Challenge  
-**Stack:** Next.js 14 (App Router), Tailwind CSS, Recharts  
-**Deployment:** Vercel  
-**Version:** 1.0
-
----
+**Hackathon:** Hack2Skill - Intelligent Candidate Discovery & Ranking Challenge  
+**Implemented Stack:** Vite, React 18, Tailwind CSS  
+**Backend Contract:** FastAPI `GET /health`, `POST /rank`  
+**Version:** 1.1 as-built
 
 ## 1. Overview
 
-A recruiter-facing dashboard that accepts a job description and candidate pool, calls the backend ranking API, and displays an intelligently ranked shortlist with score breakdowns. Used as the live sandbox demo link in `submission_metadata.yaml`.
+RRR is a recruiter-facing dashboard that ingests a job description and candidate dataset, ranks candidates through the backend API, and presents a top-100 shortlist with score context, filters, anomaly detection, and candidate profile exploration.
 
----
+The current app is a single-page Vite React application. It does not use Next.js routes, Recharts, or a Next.js API proxy.
 
 ## 2. Goals
 
-- Clean demo UI that judges can use live during evaluation
-- Show all 5 scoring components visually — not just a final number
-- Parse and display `reasoning` field as structured tags
-- Responsive — works on both desktop and tablet (judges will test on various devices)
-- Fully functional against mock data during development, real backend in production
-
----
+- Let judges or recruiters load a JD and candidate feed quickly.
+- Support `.json`, `.jsonl`, and `.jsonl.gz` candidate files.
+- Call the FastAPI backend when `VITE_API_URL` is configured.
+- Preserve demo usability with a browser-side fallback ranker if the backend is unavailable.
+- Show ranking evidence through score bars, reasoning text, skills, Redrob signals, and timeline anomaly flags.
+- Validate that ranked output satisfies the expected top-100 submission structure.
+- Work across desktop and mobile with a split desktop workspace and tabbed mobile workflow.
 
 ## 3. Out of Scope
 
-- Authentication / login
-- Saving past rankings or history
-- Editing candidate profiles
-- Custom weight adjustment UI (hardcoded weights from PRD)
+- Authentication and user accounts.
+- Persisting past ranking sessions.
+- Editing candidate source profiles.
+- Manual scoring weight controls.
+- Exporting CSV from the UI.
+- Full five-axis chart visualization. The current UI displays three grouped axes: skill, semantic, and activity.
 
----
+## 4. User Flow
 
-## 4. Pages & Views
+1. User opens the dashboard.
+2. App checks `{VITE_API_URL}/health` and shows API status.
+3. User pastes a job description or loads the demo JD.
+4. User uploads candidates or loads `public/sample_candidates.json`.
+5. User runs the discovery matrix.
+6. App calls `POST {VITE_API_URL}/rank`.
+7. If the API succeeds, results are normalized and displayed.
+8. If the API fails, the app computes local fallback rankings and shows a warning.
+9. User searches, filters, sorts, and opens candidate details.
+10. Compliance tray validates top-100 row count, unique IDs, rank uniqueness, score ordering, and tie-break order.
 
-### 4.1 Upload / Configure — `/`
+## 5. Functional Requirements
 
-- Textarea: "Paste Job Description"
-- File upload: "Upload Candidates JSON" (accepts `.json`)
-- Button: "Rank Candidates" → calls `/api/rank`
-- Loading state with progress indicator (encoding 5000 candidates takes a moment)
+### 5.1 Input Panel
 
-### 4.2 Ranked Results Table — `/results`
+Source: `src/components/InputPanel.jsx`
 
-Sortable table with columns:
+Requirements:
 
-| Column | Description |
-|---|---|
-| Rank | Badge (#1, #2, #3…) |
-| Candidate | Name + current title |
-| Score | `ScoreBar` component (0–1 as visual bar) |
-| Experience | Years of experience |
-| Top Skills | `SkillChips` — top 3 matching skills |
-| Reasoning | `ReasoningTag` — parsed into structured inline badges |
+- Textarea for raw job description text.
+- File upload and drag/drop for `.json`, `.jsonl`, `.jsonl.gz`.
+- Demo loader that fills a backend/data-engineer JD and loads sample candidates.
+- API status badge:
+  - connected
+  - local engine/fallback
+  - connecting
+- Run button disabled while loading or when no candidates are loaded.
+- Parse progress count while reading candidate files.
 
-Click any row → opens `CandidateDrawer` on the right.
+### 5.2 Candidate Parsing
 
-### 4.3 Candidate Detail Drawer
+Source: `src/utils/jsonlParser.js`
 
-Right-side slide-in panel showing:
-- Full profile (headline, summary, location)
-- Career timeline (all roles, most recent first)
-- Skill list with proficiency levels
-- `ScoreBreakdown` radar chart — all 5 scoring components
-- Redrob signals (open to work, last active, GitHub score)
+Requirements:
 
-### 4.4 Score Breakdown Panel
+- Parse JSON array files.
+- Parse newline-delimited JSON files.
+- Parse gzipped JSONL when the browser supports `DecompressionStream`.
+- Cap parsed rows at `100000` for browser performance.
+- Return clear parse errors for invalid JSON/JSONL.
 
-Radar chart using `Recharts RadarChart` with 5 axes:
-- Skill Match
-- Career Fit
-- Signal Modifier
-- Education
-- Availability
+### 5.3 Ranking API Integration
 
----
+Source: `src/api/rankApi.js`
 
-## 5. Component Architecture
+Environment variable:
 
-```
-app/
-├── page.tsx                   ← Upload + Configure view
-├── results/
-│   └── page.tsx               ← Ranked Results Table
-├── components/
-│   ├── CandidateTable.tsx     ← Sortable results table
-│   ├── ScoreBar.tsx           ← 0–1 score as progress bar
-│   ├── SkillChips.tsx         ← Top matching skills as color chips
-│   ├── CandidateDrawer.tsx    ← Right-side detail panel
-│   ├── ScoreBreakdown.tsx     ← Recharts RadarChart
-│   └── ReasoningTag.tsx       ← Parses reasoning string into badges
-└── lib/
-    ├── mockData.ts            ← Loads sample_submission.csv for dev
-    └── api.ts                 ← Calls backend /rank endpoint
+```env
+VITE_API_URL=http://localhost:8000
 ```
 
----
+Request:
 
-## 6. Reasoning Tag Parsing
-
-The `reasoning` field from `submission.csv` is a semicolon-separated string:
-
-```
-"HR Manager with 6.1 yrs; 9 AI core skills; response rate 0.76."
-```
-
-Parse into structured badges — do not render as raw text:
-
-```tsx
-const parts = reasoning.split(";").map(s => s.trim());
-// Renders: [HR Manager] [6.1 yrs exp] [9 AI skills] [76% response rate]
+```json
+{
+  "job_description": "Job description text",
+  "candidates": []
+}
 ```
 
----
+Accepted response shapes:
 
-## 7. API Integration
+- `[]`
+- `{ "results": [] }`
+- `{ "ranked_results": [] }`
+- `{ "rankedCandidates": [] }`
+- `{ "ranked_candidates": [] }`
 
-**Production:** Calls FastAPI backend on HuggingFace Spaces  
-**Development:** Uses `mockData.ts` with `sample_submission.csv`
+Normalized row shape:
 
-Next.js API route `/api/rank` proxies the request to the Python backend:
-
+```json
+{
+  "candidate_id": "CAND_0000001",
+  "rank": 1,
+  "score": 0.8123,
+  "reasoning": "Backend Engineer with 6.9 yrs; 12 skills; strongest signal: skill match; response rate 0.71; notice 30 days.",
+  "breakdown": {
+    "skill": 0.84,
+    "semantic": 0.76,
+    "activity": 0.69
+  }
+}
 ```
-NEXT_PUBLIC_API_URL=https://huggingface.co/spaces/YOUR_USERNAME/redrob-ranker
+
+### 5.4 Local Fallback Ranking
+
+Source: `src/utils/scoreUtils.js`
+
+Fallback is used when:
+
+- `VITE_API_URL` is unset.
+- Health check fails.
+- `POST /rank` fails.
+- API returns an empty result set.
+
+Local fallback score:
+
+```text
+score = skill * 0.45 + semantic * 0.35 + activity * 0.20
 ```
 
-| Action | Method | Endpoint |
-|---|---|---|
-| Rank candidates | POST | `/rank` |
-| Health check | GET | `/health` |
+Fallback axes:
 
----
+- `skill`: skill assessments plus skill count.
+- `semantic`: years of experience plus career history depth.
+- `activity`: response rate, profile completeness, GitHub activity.
 
-## 8. Development Workflow
+### 5.5 Results Panel
 
-1. Build all components against `mockData.ts` (sample_submission.csv + sample_candidates.json)
-2. Test all views with mock data before touching the backend
-3. Wire up `/api/rank` Next.js route to real backend last
-4. Deploy to Vercel — set `NEXT_PUBLIC_API_URL` in environment variables
+Source: `src/components/ResultsPanel.jsx`
 
----
+Requirements:
 
-## 9. Environment Variables
+- Display shortlist statistics:
+  - result count
+  - average fit score
+  - notice-period availability percentage
+  - anomaly count
+- Search by candidate name, headline, company, title, and location.
+- Sort by rank, experience, notice period, profile completeness, or skill count.
+- Filter by:
+  - notice period <= 30 days
+  - GitHub attached
+  - hide anomalies
+  - anomalies only
+- Render candidate cards in ranked order by default.
 
-| Variable | Description |
-|---|---|
-| `NEXT_PUBLIC_API_URL` | HuggingFace Spaces backend URL |
+### 5.6 Candidate Card
 
----
+Source: `src/components/CandidateCard.jsx`
 
-## 10. Deployment (Vercel)
+Requirements:
 
-1. Push repo to GitHub
-2. Import on [vercel.com](https://vercel.com)
-3. Add `NEXT_PUBLIC_API_URL` in Project → Settings → Environment Variables
-4. Every push to `main` auto-deploys
-5. Copy the Vercel URL → paste as `sandbox_link` in `submission_metadata.yaml`
+- Display rank, candidate name, ID, headline, current title/company/location.
+- Show formatted fit score.
+- Show grouped score bar:
+  - skill congruence
+  - semantic sequence
+  - platform activity
+- Show reasoning text and top four skills.
+- Flag employment chronology anomalies.
 
----
+### 5.7 Candidate Modal
 
-## 11. Acceptance Criteria
+Source: `src/components/CandidateModal.jsx`
 
-- [ ] Upload JD + candidates JSON → triggers ranking → results render
-- [ ] Ranked table shows score bar, skill chips, reasoning tags per candidate
-- [ ] Clicking a candidate opens detail drawer with radar chart
-- [ ] All 5 score components visible in breakdown
-- [ ] Responsive at 768px+ (tablet)
-- [ ] Works against mock data in dev and real backend in production
-- [ ] Deployed live on Vercel with working sandbox URL
+Requirements:
+
+- Slide-in detail panel.
+- Show overall score and grouped score percentages.
+- Show reasoning.
+- Show employment timeline with duration/overlap anomalies.
+- Show skills ledger with declared proficiency and Redrob assessment score.
+- Show availability, compensation, work mode, engagement, verification, and activity signals.
+
+### 5.8 Compliance Tray
+
+Source: `src/components/ComplianceTray.jsx`, `src/utils/validation.js`
+
+Validation requirements:
+
+- Exactly 100 ranked rows.
+- Unique `candidate_id`.
+- `candidate_id` matches `CAND_XXXXXXX`.
+- Unique ranks from 1 to 100.
+- Scores are non-increasing by rank.
+- Equal scores are tie-broken by `candidate_id` ascending.
+
+## 6. Backend Scoring Contract
+
+The backend implementation in `RRR-Resume-Ranker-Recruiter-Backend/app/main.py` uses `deterministic_weighted_v1`.
+
+Backend score:
+
+```text
+score =
+  skill_match * 0.35 +
+  career_fit * 0.25 +
+  signal_modifier * 0.15 +
+  education * 0.15 +
+  availability * 0.10
+```
+
+Backend components:
+
+| Component | Weight | Data used |
+|---|---:|---|
+| Skill Match | 35% | Skills, proficiency, endorsements, duration, assessments, JD token overlap |
+| Career Fit | 25% | Profile text, career descriptions, title/industry match, experience, recency |
+| Signal Modifier | 15% | Response rate, interview completion, completeness, GitHub, activity, verification |
+| Education | 15% | Institution tier and education field match |
+| Availability | 10% | Notice period, open-to-work, relocation, preferred work mode |
+
+The backend returns both grouped UI keys and full model keys:
+
+- `skill`
+- `semantic`
+- `activity`
+- `skill_match`
+- `career_fit`
+- `signal_modifier`
+- `education`
+- `availability`
+
+## 7. Component Architecture
+
+```text
+src/
+  api/
+    rankApi.js
+  components/
+    CandidateCard.jsx
+    CandidateModal.jsx
+    ComplianceTray.jsx
+    InputPanel.jsx
+    ResultsPanel.jsx
+    ScoreBar.jsx
+  utils/
+    formatters.js
+    jsonlParser.js
+    scoreUtils.js
+    validation.js
+  App.jsx
+  index.css
+  main.jsx
+```
+
+## 8. Acceptance Criteria
+
+- Upload JD and candidates, run ranking, and render results.
+- Backend responds successfully to `/health` and `/rank`.
+- Frontend consumes backend results through `VITE_API_URL`.
+- Fallback ranking works when backend is unavailable.
+- Results can be searched, sorted, and filtered.
+- Candidate modal opens with career, skills, and Redrob signal details.
+- Compliance tray reflects top-100 submission readiness.
+- Production build completes with `npm run build`.
