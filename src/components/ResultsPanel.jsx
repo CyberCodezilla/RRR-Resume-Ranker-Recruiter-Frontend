@@ -1,13 +1,60 @@
 import { useMemo, useState } from "react";
 import CandidateCard from "./CandidateCard";
 import { detectTimelineAnomaly } from "../utils/scoreUtils";
+import { exportPdfReport, exportWordReport } from "../utils/reportGenerator";
 
-const ResultsPanel = ({ rankedResults, candidates, isLoading, onSelectCandidate }) => {
+const ResultsPanel = ({
+  rankedResults,
+  candidates,
+  isLoading,
+  onSelectCandidate,
+  jobDescription,
+}) => {
   const [query, setQuery] = useState("");
   const [sortBy, setSortBy] = useState("rank");
   const [anomalyFilter, setAnomalyFilter] = useState("all"); // "all" | "only" | "exclude"
   const [availableOnly, setAvailableOnly] = useState(false);
   const [githubOnly, setGithubOnly] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+
+  const activeFiltersText = useMemo(() => {
+    const filters = [];
+    if (availableOnly) filters.push("Notice Period ≤ 30 Days");
+    if (githubOnly) filters.push("GitHub Attached");
+    if (anomalyFilter === "only") filters.push("Anomalies Only");
+    if (anomalyFilter === "exclude") filters.push("Clean Timelines Only");
+    if (query.trim()) filters.push(`Search: "${query.trim()}"`);
+    return filters.join(", ") || "None (Full Shortlist)";
+  }, [availableOnly, githubOnly, anomalyFilter, query]);
+
+  const handleExportPdf = async () => {
+    setIsExportingPdf(true);
+    try {
+      await exportPdfReport(
+        filtered,
+        jobDescription,
+        stats,
+        query,
+        sortBy,
+        activeFiltersText
+      );
+    } catch (err) {
+      alert("Unable to generate PDF report.");
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
+  const handleExportWord = () => {
+    exportWordReport(
+      filtered,
+      jobDescription,
+      stats,
+      query,
+      sortBy,
+      activeFiltersText
+    );
+  };
 
   const stats = useMemo(() => {
     if (rankedResults.length === 0) {
@@ -124,15 +171,46 @@ const ResultsPanel = ({ rankedResults, candidates, isLoading, onSelectCandidate 
 
   return (
     <div className="flex-1 flex flex-col border-b border-borderline bg-canvas min-h-0 overflow-hidden">
-      <div className="px-6 pt-6 pb-4 border-b border-borderline/80 flex flex-col gap-4">
-        <div className="flex items-center justify-between">
+      <div className="px-4 py-4 sm:px-6 sm:pt-6 sm:pb-4 border-b border-borderline/80 flex flex-col gap-4">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-slate-500 font-mono">Shortlist Console</p>
             <h2 className="text-xl font-bold text-white mt-1">Ranked Shortlist</h2>
           </div>
-          <span className="px-2.5 py-0.5 rounded-full text-xs font-mono bg-slate-900 border border-slate-800 text-slate-400">
-            {filtered.length} matching profiles
-          </span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-mono bg-slate-900 border border-slate-800 text-slate-400">
+              {filtered.length} matching
+            </span>
+            {rankedResults.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  disabled={isExportingPdf || filtered.length === 0}
+                  onClick={handleExportPdf}
+                  className="text-[11px] bg-slate-900 border border-slate-800 hover:border-slate-700 hover:bg-slate-800 text-slate-300 font-bold px-3 py-1.5 rounded flex items-center gap-1.5 transition-all duration-200"
+                  title="Export current filtered results as PDF"
+                >
+                  <svg className="h-3.5 w-3.5 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span>{isExportingPdf ? "PDF..." : "PDF"}</span>
+                </button>
+                
+                <button
+                  type="button"
+                  disabled={filtered.length === 0}
+                  onClick={handleExportWord}
+                  className="text-[11px] bg-slate-900 border border-slate-800 hover:border-slate-700 hover:bg-slate-800 text-slate-300 font-bold px-3 py-1.5 rounded flex items-center gap-1.5 transition-all duration-200"
+                  title="Export current filtered results as Word Document"
+                >
+                  <svg className="h-3.5 w-3.5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span>Word</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {rankedResults.length > 0 && (
