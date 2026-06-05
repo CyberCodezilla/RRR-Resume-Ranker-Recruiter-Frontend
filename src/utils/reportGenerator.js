@@ -19,6 +19,110 @@ const getTopSkills = (filtered) => {
 };
 
 /**
+ * Formats a single candidate podium card (Gold, Silver, or Bronze)
+ * using standard tables for high compatibility in both PDF and Word document formats.
+ */
+const renderPodiumCard = (item, rank, type) => {
+  if (!item) return "";
+  const score = item.result.score <= 1 ? item.result.score * 100 : item.result.score;
+  const isAnomaly = detectTimelineAnomaly(item.candidate);
+  const profile = item.candidate?.profile || {};
+  const signals = item.candidate?.redrob_signals || {};
+  
+  const skillsList = (item.candidate?.skills || [])
+    .slice(0, 6)
+    .map(s => s.name)
+    .join(", ");
+
+  const salary = signals.expected_salary_range_inr_lpa
+    ? `${signals.expected_salary_range_inr_lpa.min}-${signals.expected_salary_range_inr_lpa.max} LPA`
+    : "--";
+  const notice = signals.notice_period_days != null
+    ? `${signals.notice_period_days} days`
+    : "--";
+  const trace = isAnomaly 
+    ? '<span style="color: #D97706; font-weight: bold;">⚠️ Flag</span>' 
+    : '<span style="color: #059669; font-weight: bold;">✓ OK</span>';
+
+  // Styling properties per Olympic medal tier
+  let cardStyle = "";
+  let badgeHtml = "";
+  let topMargin = "0px";
+
+  if (type === "gold") {
+    cardStyle = "border: 2px solid #EAB308; background-color: #FEF9C3; box-shadow: 0 4px 6px -1px rgba(234, 179, 8, 0.15);";
+    badgeHtml = '<span style="font-size: 8px; font-weight: bold; background-color: #EAB308; color: #78350F; padding: 2px 5px; border-radius: 3px; font-family: monospace;">🥇 GOLD MATCH #1</span>';
+    topMargin = "0px";
+  } else if (type === "silver") {
+    cardStyle = "border: 1.5px solid #94A3B8; background-color: #F8FAFC; box-shadow: 0 2px 4px -1px rgba(148, 163, 184, 0.1);";
+    badgeHtml = '<span style="font-size: 8px; font-weight: bold; background-color: #94A3B8; color: #1E293B; padding: 2px 5px; border-radius: 3px; font-family: monospace;">🥈 SILVER MATCH #2</span>';
+    topMargin = "15px";
+  } else {
+    cardStyle = "border: 1.5px solid #C2410C; background-color: #FFF7ED; box-shadow: 0 2px 4px -1px rgba(194, 65, 12, 0.1);";
+    badgeHtml = '<span style="font-size: 8px; font-weight: bold; background-color: #C2410C; color: #FFFFFF; padding: 2px 5px; border-radius: 3px; font-family: monospace;">🥉 BRONZE MATCH #3</span>';
+    topMargin = "25px";
+  }
+
+  const truncateStr = (str, len = 20) => {
+    if (!str) return "N/A";
+    return str.length > len ? str.slice(0, len) + "..." : str;
+  };
+
+  return `
+    <div class="spotlight-card" style="margin-top: ${topMargin}; ${cardStyle} padding: 12px; border-radius: 8px; box-sizing: border-box;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="vertical-align: top;">
+            ${badgeHtml}
+            <h3 style="margin: 4px 0 1px 0; color: #0F172A; font-size: 12px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px;">${profile.anonymized_name || "Unknown"}</h3>
+          </td>
+          <td style="text-align: right; vertical-align: top;">
+            <div style="font-size: 15px; font-weight: bold; color: #059669; font-family: monospace;">${score.toFixed(1)}%</div>
+          </td>
+        </tr>
+      </table>
+      
+      <div style="font-size: 8.5px; color: #64748B; font-weight: 600; margin-top: 2px; height: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${profile.headline || "N/A"}</div>
+
+      <table style="width: 100%; border-collapse: collapse; margin-top: 5px; font-size: 9px; border-top: 1px dashed #E2E8F0; padding-top: 5px;">
+        <tr>
+          <td style="padding: 1px 0; color: #475569;"><strong>Role:</strong></td>
+          <td style="text-align: right; color: #1E293B; font-weight: 600;">${truncateStr(profile.current_title, 18)}</td>
+        </tr>
+        <tr>
+          <td style="padding: 1px 0; color: #475569;"><strong>Company:</strong></td>
+          <td style="text-align: right; color: #1E293B; font-weight: 600;">${truncateStr(profile.current_company, 18)}</td>
+        </tr>
+        <tr>
+          <td style="padding: 1px 0; color: #475569;"><strong>Experience:</strong></td>
+          <td style="text-align: right; color: #1E293B; font-weight: 600;">${profile.years_of_experience || 0} yrs</td>
+        </tr>
+        <tr>
+          <td style="padding: 1px 0; color: #475569;"><strong>Notice:</strong></td>
+          <td style="text-align: right; color: #1E293B; font-weight: 600;">${truncateStr(notice, 12)}</td>
+        </tr>
+        <tr>
+          <td style="padding: 1px 0; color: #475569;"><strong>Salary:</strong></td>
+          <td style="text-align: right; color: #1E293B; font-weight: 600;">${truncateStr(salary, 12)}</td>
+        </tr>
+        <tr>
+          <td style="padding: 1px 0; color: #475569;"><strong>Timeline:</strong></td>
+          <td style="text-align: right;">${trace}</td>
+        </tr>
+      </table>
+
+      <div style="margin-top: 5px; font-size: 9px; color: #475569; background-color: #FFFFFF; border: 1px solid #E2E8F0; padding: 5px; border-radius: 4px; font-family: monospace; line-height: 1.3; height: 38px; overflow: hidden;">
+        <strong>Reason:</strong> ${item.result.reasoning || "N/A"}
+      </div>
+
+      <div style="margin-top: 5px; font-size: 8.5px; color: #334155; height: 24px; overflow: hidden; line-height: 1.25;">
+        <strong>Skills:</strong> <span style="color: #475569;">${skillsList || "None"}</span>
+      </div>
+    </div>
+  `;
+};
+
+/**
  * Generates an array of A4 HTML pages (each representation inside a styled .report-page container)
  * suited for browser rendering and html2canvas visual page-by-page PDF capturing.
  */
@@ -206,202 +310,31 @@ export const generateHtmlPages = (
   `);
 
   // PAGE 3: TOP CANDIDATES SPOTLIGHT (Only if filtered list has entries)
+  let spotlightsHtml = "";
   if (filtered.length > 0) {
-    const item1 = filtered[0];
-    const score1 = item1.result.score <= 1 ? item1.result.score * 100 : item1.result.score;
-    const isAnomaly1 = detectTimelineAnomaly(item1.candidate);
-    const skillsList1 = (item1.candidate?.skills || [])
-      .slice(0, 8)
-      .map(s => s.name)
-      .join(", ");
-    const salary1 = item1.candidate?.redrob_signals?.expected_salary_range_inr_lpa
-      ? `${item1.candidate.redrob_signals.expected_salary_range_inr_lpa.min}-${item1.candidate.redrob_signals.expected_salary_range_inr_lpa.max} LPA`
-      : "--";
-    const notice1 = item1.candidate?.redrob_signals?.notice_period_days != null
-      ? `${item1.candidate.redrob_signals.notice_period_days} days`
-      : "--";
-    const trace1 = isAnomaly1 
-      ? '<span style="color: #D97706; font-weight: bold;">⚠️ Anomaly</span>' 
-      : '<span style="color: #059669; font-weight: 500;">✓ Clean</span>';
+    const item1 = filtered[0]; // Gold #1
+    const item2 = filtered.length > 1 ? filtered[1] : null; // Silver #2
+    const item3 = filtered.length > 2 ? filtered[2] : null; // Bronze #3
 
-    let card2Html = "";
-    let card3Html = "";
-
-    if (filtered.length > 1) {
-      const item2 = filtered[1];
-      const score2 = item2.result.score <= 1 ? item2.result.score * 100 : item2.result.score;
-      const isAnomaly2 = detectTimelineAnomaly(item2.candidate);
-      const skillsList2 = (item2.candidate?.skills || [])
-        .slice(0, 5)
-        .map(s => s.name)
-        .join(", ");
-      const salary2 = item2.candidate?.redrob_signals?.expected_salary_range_inr_lpa
-        ? `${item2.candidate.redrob_signals.expected_salary_range_inr_lpa.min}-${item2.candidate.redrob_signals.expected_salary_range_inr_lpa.max} LPA`
-        : "--";
-      const notice2 = item2.candidate?.redrob_signals?.notice_period_days != null
-        ? `${item2.candidate.redrob_signals.notice_period_days}d`
-        : "--";
-      const trace2 = isAnomaly2 
-        ? '<span style="color: #D97706; font-weight: bold;">⚠️ Anomaly</span>' 
-        : '<span style="color: #059669; font-weight: 500;">✓ Clean</span>';
-
-      card2Html = `
-        <div class="spotlight-card" style="margin-bottom: 0; padding: 12px; border: 1px solid #E2E8F0; border-radius: 6px; background-color: #F8FAFC;">
-          <table style="width: 100%; border-collapse: collapse;">
-            <tr>
-              <td style="width: 70%; vertical-align: top;">
-                <span style="font-size: 8px; font-weight: bold; background-color: #475569; color: white; padding: 1px 5px; border-radius: 2px; font-family: monospace;">MATCH #2</span>
-                <h3 style="margin: 2px 0 1px 0; color: #1E293B; font-size: 12px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px;">${item2.candidate?.profile?.anonymized_name || "Unknown"}</h3>
-              </td>
-              <td style="width: 30%; text-align: right; vertical-align: top;">
-                <div style="font-size: 15px; font-weight: bold; color: #059669; font-family: monospace;">${score2.toFixed(1)}%</div>
-              </td>
-            </tr>
-          </table>
-          
-          <div style="font-size: 9px; color: #64748B; font-weight: 600; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${item2.candidate?.profile?.headline || "N/A"}</div>
-
-          <table style="width: 100%; border-collapse: collapse; margin-top: 5px; font-size: 9px; border-top: 1px dashed #E2E8F0; padding-top: 4px;">
-            <tr>
-              <td style="padding: 1px 0; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;"><strong>Role:</strong> ${item2.candidate?.profile?.current_title || "N/A"}</td>
-            </tr>
-            <tr>
-              <td style="padding: 1px 0; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;"><strong>Company:</strong> ${item2.candidate?.profile?.current_company || "N/A"} (${item2.candidate?.profile?.years_of_experience || 0} yrs)</td>
-            </tr>
-            <tr>
-              <td style="padding: 1px 0; color: #475569;"><strong>Notice/Sal:</strong> ${notice2} / ${salary2}</td>
-            </tr>
-            <tr>
-              <td style="padding: 1px 0; color: #475569;"><strong>Timeline:</strong> ${trace2}</td>
-            </tr>
-          </table>
-
-          <div style="margin-top: 5px; font-size: 9px; color: #475569; background-color: #FFFFFF; border: 1px solid #E2E8F0; padding: 5px; border-radius: 4px; font-family: monospace; line-height: 1.3; height: 32px; overflow: hidden;">
-            <strong>Reason:</strong> ${item2.result.reasoning || "N/A"}
-          </div>
-
-          <div style="margin-top: 4px; font-size: 9px; color: #334155; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-            <strong>Skills:</strong> <span style="color: #475569;">${skillsList2 || "None"}</span>
-          </div>
-        </div>
-      `;
-    }
-
-    if (filtered.length > 2) {
-      const item3 = filtered[2];
-      const score3 = item3.result.score <= 1 ? item3.result.score * 100 : item3.result.score;
-      const isAnomaly3 = detectTimelineAnomaly(item3.candidate);
-      const skillsList3 = (item3.candidate?.skills || [])
-        .slice(0, 5)
-        .map(s => s.name)
-        .join(", ");
-      const salary3 = item3.candidate?.redrob_signals?.expected_salary_range_inr_lpa
-        ? `${item3.candidate.redrob_signals.expected_salary_range_inr_lpa.min}-${item3.candidate.redrob_signals.expected_salary_range_inr_lpa.max} LPA`
-        : "--";
-      const notice3 = item3.candidate?.redrob_signals?.notice_period_days != null
-        ? `${item3.candidate.redrob_signals.notice_period_days}d`
-        : "--";
-      const trace3 = isAnomaly3 
-        ? '<span style="color: #D97706; font-weight: bold;">⚠️ Anomaly</span>' 
-        : '<span style="color: #059669; font-weight: 500;">✓ Clean</span>';
-
-      card3Html = `
-        <div class="spotlight-card" style="margin-bottom: 0; padding: 12px; border: 1px solid #E2E8F0; border-radius: 6px; background-color: #F8FAFC;">
-          <table style="width: 100%; border-collapse: collapse;">
-            <tr>
-              <td style="width: 70%; vertical-align: top;">
-                <span style="font-size: 8px; font-weight: bold; background-color: #475569; color: white; padding: 1px 5px; border-radius: 2px; font-family: monospace;">MATCH #3</span>
-                <h3 style="margin: 2px 0 1px 0; color: #1E293B; font-size: 12px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px;">${item3.candidate?.profile?.anonymized_name || "Unknown"}</h3>
-              </td>
-              <td style="width: 30%; text-align: right; vertical-align: top;">
-                <div style="font-size: 15px; font-weight: bold; color: #059669; font-family: monospace;">${score3.toFixed(1)}%</div>
-              </td>
-            </tr>
-          </table>
-          
-          <div style="font-size: 9px; color: #64748B; font-weight: 600; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${item3.candidate?.profile?.headline || "N/A"}</div>
-
-          <table style="width: 100%; border-collapse: collapse; margin-top: 5px; font-size: 9px; border-top: 1px dashed #E2E8F0; padding-top: 4px;">
-            <tr>
-              <td style="padding: 1px 0; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;"><strong>Role:</strong> ${item3.candidate?.profile?.current_title || "N/A"}</td>
-            </tr>
-            <tr>
-              <td style="padding: 1px 0; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;"><strong>Company:</strong> ${item3.candidate?.profile?.current_company || "N/A"} (${item3.candidate?.profile?.years_of_experience || 0} yrs)</td>
-            </tr>
-            <tr>
-              <td style="padding: 1px 0; color: #475569;"><strong>Notice/Sal:</strong> ${notice3} / ${salary3}</td>
-            </tr>
-            <tr>
-              <td style="padding: 1px 0; color: #475569;"><strong>Timeline:</strong> ${trace3}</td>
-            </tr>
-          </table>
-
-          <div style="margin-top: 5px; font-size: 9px; color: #475569; background-color: #FFFFFF; border: 1px solid #E2E8F0; padding: 5px; border-radius: 4px; font-family: monospace; line-height: 1.3; height: 32px; overflow: hidden;">
-            <strong>Reason:</strong> ${item3.result.reasoning || "N/A"}
-          </div>
-
-          <div style="margin-top: 4px; font-size: 9px; color: #334155; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-            <strong>Skills:</strong> <span style="color: #475569;">${skillsList3 || "None"}</span>
-          </div>
-        </div>
-      `;
-    }
-
-    const row2Html = card2Html || card3Html ? `
-      <table style="width: 100%; border-collapse: collapse; margin-top: 12px; table-layout: fixed;">
+    spotlightsHtml = `
+      <table style="width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 5px;">
         <tr>
-          <td style="width: 49%; vertical-align: top; padding: 0;">
-            ${card2Html || `<div class="spotlight-card" style="visibility: hidden;"></div>`}
+          <!-- Column 1: Silver Match #2 -->
+          <td style="width: 32%; vertical-align: top; padding: 0 5px;">
+            ${item2 ? renderPodiumCard(item2, 2, "silver") : ""}
           </td>
-          <td style="width: 2%;"></td>
-          <td style="width: 49%; vertical-align: top; padding: 0;">
-            ${card3Html || `<div class="spotlight-card" style="visibility: hidden;"></div>`}
+          
+          <!-- Column 2: Gold Match #1 -->
+          <td style="width: 36%; vertical-align: top; padding: 0 5px;">
+            ${renderPodiumCard(item1, 1, "gold")}
+          </td>
+          
+          <!-- Column 3: Bronze Match #3 -->
+          <td style="width: 32%; vertical-align: top; padding: 0 5px;">
+            ${item3 ? renderPodiumCard(item3, 3, "bronze") : ""}
           </td>
         </tr>
       </table>
-    ` : "";
-
-    const spotlightsHtml = `
-      <!-- TOP MATCH #1 -->
-      <div class="spotlight-card" style="padding: 15px; border: 1px solid #E2E8F0; border-radius: 6px; background-color: #F8FAFC; margin-bottom: 0;">
-        <table style="width: 100%; border-collapse: collapse;">
-          <tr>
-            <td style="width: 80%; vertical-align: top;">
-              <span style="font-size: 8px; font-weight: bold; background-color: #2563EB; color: white; padding: 1px 5px; border-radius: 2px; font-family: monospace;">TOP MATCH #1</span>
-              <h3 style="margin: 3px 0 1px 0; color: #1E293B; font-size: 14px; font-weight: bold;">${item1.candidate?.profile?.anonymized_name || "Unknown"}</h3>
-              <p style="margin: 0; font-size: 10px; font-weight: 600; color: #64748B;">${item1.candidate?.profile?.headline || "N/A"}</p>
-            </td>
-            <td style="width: 20%; text-align: right; vertical-align: top;">
-              <div style="font-size: 8px; text-transform: uppercase; color: #64748B; font-weight: bold; font-family: monospace;">Fit Score</div>
-              <div style="font-size: 20px; font-weight: bold; color: #059669; font-family: monospace; line-height: 1;">${score1.toFixed(1)}%</div>
-            </td>
-          </tr>
-        </table>
-        
-        <table style="width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 10px; border-top: 1px dashed #E2E8F0; padding-top: 6px;">
-          <tr>
-            <td style="width: 33%; padding: 2px 0; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;"><strong>Role:</strong> <span style="color: #1E293B;">${item1.candidate?.profile?.current_title || "N/A"}</span></td>
-            <td style="width: 33%; padding: 2px 0; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;"><strong>Company:</strong> <span style="color: #1E293B;">${item1.candidate?.profile?.current_company || "N/A"}</span></td>
-            <td style="width: 34%; padding: 2px 0; color: #475569;"><strong>Experience:</strong> <span style="color: #1E293B;">${item1.candidate?.profile?.years_of_experience || 0} Years</span></td>
-          </tr>
-          <tr>
-            <td style="padding: 2px 0; color: #475569;"><strong>Notice:</strong> <span style="color: #1E293B;">${notice1}</span></td>
-            <td style="padding: 2px 0; color: #475569;"><strong>Expected Salary:</strong> <span style="color: #1E293B;">${salary1}</span></td>
-            <td style="padding: 2px 0; color: #475569;"><strong>Timeline Trace:</strong> ${trace1}</td>
-          </tr>
-        </table>
-
-        <div style="margin-top: 6px; font-size: 9.5px; color: #475569; background-color: #FFFFFF; border: 1px solid #E2E8F0; padding: 6px; border-radius: 4px; font-family: monospace; line-height: 1.4;">
-          <strong>Fit Synthesizer Reason:</strong> ${item1.result.reasoning || "No reasoning generated."}
-        </div>
-
-        <div style="margin-top: 4px; font-size: 9.5px; color: #334155;">
-          <strong>Skills:</strong> <span style="color: #475569;">${skillsList1 || "None"}</span>
-        </div>
-      </div>
-
-      <!-- MATCH #2 & #3 SIDE-BY-SIDE -->
-      ${row2Html}
     `;
 
     pages.push(`
@@ -412,7 +345,7 @@ export const generateHtmlPages = (
         </div>
 
         <div style="flex-grow: 1;">
-          <h2 class="section-title">Top Matches Spotlight</h2>
+          <h2 class="section-title">Top Matches Spotlight (Olympic Podium Board)</h2>
           ${spotlightsHtml}
         </div>
 
@@ -641,201 +574,31 @@ export const generateWordHtml = (filtered, jobDescription, stats, query, sortBy,
     `;
   }).join("");
 
-  let spotlightCardsHtml = "";
+  let spotlightsHtml = "";
   if (filtered.length > 0) {
-    const item1 = filtered[0];
-    const score1 = item1.result.score <= 1 ? item1.result.score * 100 : item1.result.score;
-    const isAnomaly1 = detectTimelineAnomaly(item1.candidate);
-    const skillsList1 = (item1.candidate?.skills || [])
-      .slice(0, 8)
-      .map(s => s.name)
-      .join(", ");
-    const salary1 = item1.candidate?.redrob_signals?.expected_salary_range_inr_lpa
-      ? `${item1.candidate.redrob_signals.expected_salary_range_inr_lpa.min}-${item1.candidate.redrob_signals.expected_salary_range_inr_lpa.max} LPA`
-      : "--";
-    const notice1 = item1.candidate?.redrob_signals?.notice_period_days != null
-      ? `${item1.candidate.redrob_signals.notice_period_days} days`
-      : "--";
-    const trace1 = isAnomaly1 
-      ? '<span style="color: #D97706; font-weight: bold;">⚠️ Anomaly</span>' 
-      : '<span style="color: #008000; font-weight: bold;">✓ Clean</span>';
+    const item1 = filtered[0]; // Gold #1
+    const item2 = filtered.length > 1 ? filtered[1] : null; // Silver #2
+    const item3 = filtered.length > 2 ? filtered[2] : null; // Bronze #3
 
-    let card2Html = "";
-    let card3Html = "";
-
-    if (filtered.length > 1) {
-      const item2 = filtered[1];
-      const score2 = item2.result.score <= 1 ? item2.result.score * 100 : item2.result.score;
-      const isAnomaly2 = detectTimelineAnomaly(item2.candidate);
-      const skillsList2 = (item2.candidate?.skills || [])
-        .slice(0, 5)
-        .map(s => s.name)
-        .join(", ");
-      const salary2 = item2.candidate?.redrob_signals?.expected_salary_range_inr_lpa
-        ? `${item2.candidate.redrob_signals.expected_salary_range_inr_lpa.min}-${item2.candidate.redrob_signals.expected_salary_range_inr_lpa.max} LPA`
-        : "--";
-      const notice2 = item2.candidate?.redrob_signals?.notice_period_days != null
-        ? `${item2.candidate.redrob_signals.notice_period_days}d`
-        : "--";
-      const trace2 = isAnomaly2 
-        ? '<span style="color: #D97706; font-weight: bold;">⚠️ Anomaly</span>' 
-        : '<span style="color: #008000; font-weight: bold;">✓ Clean</span>';
-
-      card2Html = `
-        <div class="spotlight-card" style="margin-bottom: 0; padding: 12px; border: 1px solid #CCCCCC; background-color: #F8FAFC;">
-          <table style="width: 100%; border-collapse: collapse;">
-            <tr>
-              <td style="width: 70%; vertical-align: top;">
-                <span style="font-size: 8px; font-weight: bold; background-color: #555555; color: white; padding: 1px 5px; border-radius: 2px; font-family: monospace;">MATCH #2</span>
-                <h3 style="margin: 2px 0 1px 0; color: #1E293B; font-size: 12px; font-weight: bold;">${item2.candidate?.profile?.anonymized_name || "Unknown"}</h3>
-              </td>
-              <td style="width: 30%; text-align: right; vertical-align: top;">
-                <div style="font-size: 15px; font-weight: bold; color: #059669; font-family: monospace;">${score2.toFixed(1)}%</div>
-              </td>
-            </tr>
-          </table>
-          <p style="margin: 2px 0 0 0; font-size: 9.5px; color: #64748B; font-weight: bold;">${item2.candidate?.profile?.headline || "N/A"}</p>
-          
-          <table style="width: 100%; border-collapse: collapse; margin-top: 5px; font-size: 9.5px; border-top: 1px dashed #CCCCCC; padding-top: 4px;">
-            <tr>
-              <td style="padding: 1px 0; color: #555555;"><strong>Role:</strong> ${item2.candidate?.profile?.current_title || "N/A"}</td>
-            </tr>
-            <tr>
-              <td style="padding: 1px 0; color: #555555;"><strong>Company:</strong> ${item2.candidate?.profile?.current_company || "N/A"} (${item2.candidate?.profile?.years_of_experience || 0} yrs)</td>
-            </tr>
-            <tr>
-              <td style="padding: 1px 0; color: #555555;"><strong>Notice/Sal:</strong> ${notice2} / ${salary2}</td>
-            </tr>
-            <tr>
-              <td style="padding: 1px 0; color: #555555;"><strong>Timeline:</strong> ${trace2}</td>
-            </tr>
-          </table>
-
-          <div style="margin-top: 5px; font-size: 9px; color: #555555; background-color: #FFFFFF; border: 1px solid #CCCCCC; padding: 5px; border-radius: 4px; font-family: monospace; line-height: 1.3; height: 32px; overflow: hidden;">
-            <strong>Reason:</strong> ${item2.result.reasoning || "N/A"}
-          </div>
-
-          <div style="margin-top: 4px; font-size: 9px; color: #333333;">
-            <strong>Skills:</strong> <span style="color: #555555;">${skillsList2 || "None"}</span>
-          </div>
-        </div>
-      `;
-    }
-
-    if (filtered.length > 2) {
-      const item3 = filtered[2];
-      const score3 = item3.result.score <= 1 ? item3.result.score * 100 : item3.result.score;
-      const isAnomaly3 = detectTimelineAnomaly(item3.candidate);
-      const skillsList3 = (item3.candidate?.skills || [])
-        .slice(0, 5)
-        .map(s => s.name)
-        .join(", ");
-      const salary3 = item3.candidate?.redrob_signals?.expected_salary_range_inr_lpa
-        ? `${item3.candidate.redrob_signals.expected_salary_range_inr_lpa.min}-${item3.candidate.redrob_signals.expected_salary_range_inr_lpa.max} LPA`
-        : "--";
-      const notice3 = item3.candidate?.redrob_signals?.notice_period_days != null
-        ? `${item3.candidate.redrob_signals.notice_period_days}d`
-        : "--";
-      const trace3 = isAnomaly3 
-        ? '<span style="color: #D97706; font-weight: bold;">⚠️ Anomaly</span>' 
-        : '<span style="color: #008000; font-weight: bold;">✓ Clean</span>';
-
-      card3Html = `
-        <div class="spotlight-card" style="margin-bottom: 0; padding: 12px; border: 1px solid #CCCCCC; background-color: #F8FAFC;">
-          <table style="width: 100%; border-collapse: collapse;">
-            <tr>
-              <td style="width: 70%; vertical-align: top;">
-                <span style="font-size: 8px; font-weight: bold; background-color: #555555; color: white; padding: 1px 5px; border-radius: 2px; font-family: monospace;">MATCH #3</span>
-                <h3 style="margin: 2px 0 1px 0; color: #1E293B; font-size: 12px; font-weight: bold;">${item3.candidate?.profile?.anonymized_name || "Unknown"}</h3>
-              </td>
-              <td style="width: 30%; text-align: right; vertical-align: top;">
-                <div style="font-size: 15px; font-weight: bold; color: #059669; font-family: monospace;">${score3.toFixed(1)}%</div>
-              </td>
-            </tr>
-          </table>
-          <p style="margin: 2px 0 0 0; font-size: 9.5px; color: #64748B; font-weight: bold;">${item3.candidate?.profile?.headline || "N/A"}</p>
-          
-          <table style="width: 100%; border-collapse: collapse; margin-top: 5px; font-size: 9.5px; border-top: 1px dashed #CCCCCC; padding-top: 4px;">
-            <tr>
-              <td style="padding: 1px 0; color: #555555;"><strong>Role:</strong> ${item3.candidate?.profile?.current_title || "N/A"}</td>
-            </tr>
-            <tr>
-              <td style="padding: 1px 0; color: #555555;"><strong>Company:</strong> ${item3.candidate?.profile?.current_company || "N/A"} (${item3.candidate?.profile?.years_of_experience || 0} yrs)</td>
-            </tr>
-            <tr>
-              <td style="padding: 1px 0; color: #555555;"><strong>Notice/Sal:</strong> ${notice3} / ${salary3}</td>
-            </tr>
-            <tr>
-              <td style="padding: 1px 0; color: #555555;"><strong>Timeline:</strong> ${trace3}</td>
-            </tr>
-          </table>
-
-          <div style="margin-top: 5px; font-size: 9px; color: #555555; background-color: #FFFFFF; border: 1px solid #CCCCCC; padding: 5px; border-radius: 4px; font-family: monospace; line-height: 1.3; height: 32px; overflow: hidden;">
-            <strong>Reason:</strong> ${item3.result.reasoning || "N/A"}
-          </div>
-
-          <div style="margin-top: 4px; font-size: 9px; color: #333333;">
-            <strong>Skills:</strong> <span style="color: #555555;">${skillsList3 || "None"}</span>
-          </div>
-        </div>
-      `;
-    }
-
-    const row2Html = card2Html || card3Html ? `
-      <table style="width: 100%; border-collapse: collapse; margin-top: 12px; table-layout: fixed;">
+    spotlightsHtml = `
+      <table style="width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 10px;">
         <tr>
-          <td style="width: 49%; vertical-align: top; padding: 0;">
-            ${card2Html || `<div class="spotlight-card" style="visibility: hidden;"></div>`}
+          <!-- Column 1: Silver Match #2 -->
+          <td style="width: 32%; vertical-align: top; padding: 0 5px;">
+            ${item2 ? renderPodiumCard(item2, 2, "silver") : ""}
           </td>
-          <td style="width: 2%;"></td>
-          <td style="width: 49%; vertical-align: top; padding: 0;">
-            ${card3Html || `<div class="spotlight-card" style="visibility: hidden;"></div>`}
+          
+          <!-- Column 2: Gold Match #1 -->
+          <td style="width: 36%; vertical-align: top; padding: 0 5px;">
+            ${renderPodiumCard(item1, 1, "gold")}
+          </td>
+          
+          <!-- Column 3: Bronze Match #3 -->
+          <td style="width: 32%; vertical-align: top; padding: 0 5px;">
+            ${item3 ? renderPodiumCard(item3, 3, "bronze") : ""}
           </td>
         </tr>
       </table>
-    ` : "";
-
-    spotlightCardsHtml = `
-      <!-- TOP MATCH #1 -->
-      <div class="spotlight-card" style="padding: 15px; border: 1px solid #CCCCCC; border-radius: 6px; background-color: #F8FAFC; margin-bottom: 0;">
-        <table style="width: 100%; border-collapse: collapse;">
-          <tr>
-            <td style="width: 80%; vertical-align: top;">
-              <span style="font-size: 8px; font-weight: bold; background-color: #2563EB; color: white; padding: 1px 5px; border-radius: 2px; font-family: monospace;">TOP MATCH #1</span>
-              <h3 style="margin: 3px 0 1px 0; color: #1E293B; font-size: 14px; font-weight: bold;">${item1.candidate?.profile?.anonymized_name || "Unknown"}</h3>
-              <p style="margin: 0; font-size: 10px; font-weight: 600; color: #64748B;">${item1.candidate?.profile?.headline || "N/A"}</p>
-            </td>
-            <td style="width: 20%; text-align: right; vertical-align: top;">
-              <div style="font-size: 8px; text-transform: uppercase; color: #64748B; font-weight: bold; font-family: monospace;">Fit Score</div>
-              <div style="font-size: 20px; font-weight: bold; color: #059669; font-family: monospace; line-height: 1;">${score1.toFixed(1)}%</div>
-            </td>
-          </tr>
-        </table>
-        
-        <table style="width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 10px; border-top: 1px dashed #CCCCCC; padding-top: 6px;">
-          <tr>
-            <td style="width: 33%; padding: 2px 0; color: #555555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;"><strong>Role:</strong> <span style="color: #111111;">${item1.candidate?.profile?.current_title || "N/A"}</span></td>
-            <td style="width: 33%; padding: 2px 0; color: #555555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;"><strong>Company:</strong> <span style="color: #111111;">${item1.candidate?.profile?.current_company || "N/A"}</span></td>
-            <td style="width: 34%; padding: 2px 0; color: #555555;"><strong>Experience:</strong> <span style="color: #111111;">${item1.candidate?.profile?.years_of_experience || 0} Years</span></td>
-          </tr>
-          <tr>
-            <td style="padding: 2px 0; color: #555555;"><strong>Notice:</strong> <span style="color: #111111;">${notice1}</span></td>
-            <td style="padding: 2px 0; color: #555555;"><strong>Expected Salary:</strong> <span style="color: #111111;">${salary1}</span></td>
-            <td style="padding: 2px 0; color: #555555;"><strong>Timeline Trace:</strong> ${trace1}</td>
-          </tr>
-        </table>
-
-        <div style="margin-top: 6px; font-size: 9.5px; color: #555555; background-color: #FFFFFF; border: 1px solid #CCCCCC; padding: 6px; border-radius: 4px; font-family: monospace; line-height: 1.4;">
-          <strong>Fit Synthesizer Reason:</strong> ${item1.result.reasoning || "No reasoning generated."}
-        </div>
-
-        <div style="margin-top: 4px; font-size: 9.5px; color: #333333;">
-          <strong>Skills:</strong> <span style="color: #555555;">${skillsList1 || "None"}</span>
-        </div>
-      </div>
-
-      <!-- MATCH #2 & #3 SIDE-BY-SIDE -->
-      ${row2Html}
     `;
   }
 
@@ -976,7 +739,7 @@ export const generateWordHtml = (filtered, jobDescription, stats, query, sortBy,
 
       <!-- SPOTLIGHT MATCHES -->
       <h2>Top Matches Spotlight</h2>
-      ${spotlightCardsHtml || "<p style='color: #666; font-style: italic;'>No candidates match the parameters.</p>"}
+      ${spotlightsHtml || "<p style='color: #666; font-style: italic;'>No candidates match the parameters.</p>"}
 
       <div style="page-break-before: always; clear: both;"></div>
 
