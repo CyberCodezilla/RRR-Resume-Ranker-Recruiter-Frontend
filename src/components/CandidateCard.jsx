@@ -20,12 +20,12 @@ const CandidateCard = ({ result, candidate, onSelect }) => {
     <button
       type="button"
       onClick={onSelect}
-      className="w-full text-left px-6 py-5 hover:bg-slate-900/30 border-l-2 border-l-transparent hover:border-l-emerald/70 transition-all duration-300 ease-in-out bg-canvas"
+      className="w-full text-left px-6 py-5 hover:bg-slate-900/30 border-l-2 border-l-transparent hover:border-l-emerald/70 transition-all duration-300 ease-in-out bg-canvas rounded-none"
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
           <div className="flex items-center gap-2.5 flex-wrap">
-            <span className="inline-flex items-center justify-center h-5 px-1.5 rounded bg-slate-900 border border-slate-800 text-[10px] font-bold font-mono text-slate-400">
+            <span className="inline-flex items-center justify-center h-5 px-1.5 rounded-none bg-slate-900 border border-slate-800 text-[10px] font-bold font-mono text-slate-400">
               #{result.rank}
             </span>
             <h3 className="text-base font-semibold text-slate-100 group-hover:text-emerald transition-colors duration-200">
@@ -42,13 +42,13 @@ const CandidateCard = ({ result, candidate, onSelect }) => {
         </div>
         <div className="flex flex-col items-end">
           <span className="text-[9px] uppercase font-mono tracking-widest text-slate-500">Fit Index</span>
-          <span className={`inline-flex items-center px-2 py-1 rounded border font-mono text-base font-bold mt-1.5 shadow-sm ${getScoreColor(result.score)}`}>
+          <span className={`inline-flex items-center px-2 py-1 rounded-none border font-mono text-base font-bold mt-1.5 shadow-sm ${getScoreColor(result.score)}`}>
             {formatScore(result.score)}
           </span>
         </div>
       </div>
 
-      <div className="mt-4 bg-slate-950/20 border border-slate-900/60 rounded p-3">
+      <div className="mt-4 bg-slate-950/20 border border-slate-900/60 rounded-none p-3">
         <ScoreBar
           segments={[
             { label: "Skill Congruence", value: breakdown.skill, color: "bg-emerald" },
@@ -63,14 +63,14 @@ const CandidateCard = ({ result, candidate, onSelect }) => {
         </div>
       </div>
 
-      <p className="mt-3 text-xs font-mono text-slate-400 bg-slate-950/40 border border-slate-900/80 rounded p-2.5 line-clamp-2 leading-relaxed">
+      <p className="mt-3 text-xs font-mono text-slate-400 bg-slate-950/40 border border-slate-900/80 rounded-none p-2.5 line-clamp-2 leading-relaxed">
         {reasoning}
       </p>
 
       {topSkills.length > 0 && (
         <div className="flex flex-wrap gap-1 mt-3">
           {topSkills.map((skill) => (
-            <span key={skill.name} className="text-[10px] font-mono px-2 py-0.5 bg-slate-950 border border-slate-800 text-slate-400 rounded">
+            <span key={skill.name} className="text-[10px] font-mono px-2 py-0.5 bg-slate-950 border border-slate-800 text-slate-400 rounded-none">
               {skill.name}
             </span>
           ))}
@@ -78,7 +78,7 @@ const CandidateCard = ({ result, candidate, onSelect }) => {
       )}
 
       {anomaly && (
-        <div className="mt-3 flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-amber border border-amber/20 bg-amber/5 rounded p-2 shadow-sm animate-pulse">
+        <div className="mt-3 flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-amber border border-amber/20 bg-amber/5 rounded-none p-2 shadow-sm animate-pulse">
           <svg className="h-4 w-4 shrink-0 text-amber" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>

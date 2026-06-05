@@ -71,3 +71,9 @@ body {
   box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
 }
 
+@media (max-height: 900px) {
+  .compliance-container {
+    height: 80px !important;
+  }
+}
+

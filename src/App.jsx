@@ -208,12 +208,7 @@ const App = () => {
               </div>
 
               {/* Compliance Details Container */}
-              <div
-                style={{ height: `${trayHeight}px` }}
-                className="shrink-0 overflow-y-auto custom-scrollbar bg-canvas"
-              >
-                <ComplianceTray rankedResults={rankedResults} />
-              </div>
+              <ComplianceTray rankedResults={rankedResults} trayHeight={trayHeight} />
             </section>
           </>
         ) : (
