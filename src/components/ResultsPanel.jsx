@@ -9,11 +9,11 @@ const ResultsPanel = ({
   isLoading,
   onSelectCandidate,
   jobDescription,
-  playlists = [],
-  onOpenPlaylistManager,
-  onCreatePlaylist,
-  onDeletePlaylist,
-  onRemoveCandidateFromPlaylist,
+  talentPools = [],
+  onOpenPoolManager,
+  onCreateTalentPool,
+  onDeleteTalentPool,
+  onRemoveCandidateFromTalentPool,
 }) => {
   const [query, setQuery] = useState("");
   const [sortBy, setSortBy] = useState("rank");
@@ -23,10 +23,10 @@ const ResultsPanel = ({
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [viewMode, setViewMode] = useState("list"); // "list" | "podium"
 
-  // Playlist UI states
-  const [activeTab, setActiveTab] = useState("shortlist"); // "shortlist" | "playlists"
-  const [selectedPlaylistId, setSelectedPlaylistId] = useState(null);
-  const [newPlaylistName, setNewPlaylistName] = useState("");
+  // Talent Pool UI states
+  const [activeTab, setActiveTab] = useState("shortlist"); // "shortlist" | "pools"
+  const [selectedPoolId, setSelectedPoolId] = useState(null);
+  const [newPoolName, setNewPoolName] = useState("");
   const [creationError, setCreationError] = useState("");
 
   const activeFiltersText = useMemo(() => {
@@ -115,13 +115,13 @@ const ResultsPanel = ({
     return itemsList;
   }, [rankedResults, candidates, query, sortBy, anomalyFilter, availableOnly, githubOnly]);
 
-  const playlistCandidatesFiltered = useMemo(() => {
-    if (activeTab !== "playlists" || !selectedPlaylistId) return [];
-    const activePlaylist = playlists.find((p) => p.id === selectedPlaylistId);
-    if (!activePlaylist) return [];
+  const poolCandidatesFiltered = useMemo(() => {
+    if (activeTab !== "pools" || !selectedPoolId) return [];
+    const activePool = talentPools.find((p) => p.id === selectedPoolId);
+    if (!activePool) return [];
 
     const search = query.trim().toLowerCase();
-    let list = activePlaylist.candidates; // array of { candidate_id, candidate, result }
+    let list = activePool.candidates; // array of { candidate_id, candidate, result }
 
     if (search) {
       list = list.filter((row) => {
@@ -168,11 +168,11 @@ const ResultsPanel = ({
     });
 
     return list;
-  }, [activeTab, selectedPlaylistId, playlists, query, sortBy]);
+  }, [activeTab, selectedPoolId, talentPools, query, sortBy]);
 
   const activeList =
-    activeTab === "playlists" && selectedPlaylistId
-      ? playlistCandidatesFiltered
+    activeTab === "pools" && selectedPoolId
+      ? poolCandidatesFiltered
       : filtered;
 
   const stats = useMemo(() => {
@@ -210,18 +210,18 @@ const ResultsPanel = ({
 
   const handleExportPdf = async () => {
     setIsExportingPdf(true);
-    const activePlaylist = playlists.find((p) => p.id === selectedPlaylistId);
+    const activePool = talentPools.find((p) => p.id === selectedPoolId);
     try {
       await exportPdfReport(
         activeList,
-        activeTab === "playlists"
-          ? `Playlist Export: ${activePlaylist?.name || ""}`
+        activeTab === "pools"
+          ? `Talent Pool Export: ${activePool?.name || ""}`
           : jobDescription,
         stats,
         query,
         sortBy,
-        activeTab === "playlists"
-          ? `Playlist: ${activePlaylist?.name || ""}`
+        activeTab === "pools"
+          ? `Talent Pool: ${activePool?.name || ""}`
           : activeFiltersText
       );
     } catch (err) {
@@ -232,41 +232,42 @@ const ResultsPanel = ({
   };
 
   const handleExportWord = () => {
-    const activePlaylist = playlists.find((p) => p.id === selectedPlaylistId);
+    const activePool = talentPools.find((p) => p.id === selectedPoolId);
     exportWordReport(
       activeList,
-      activeTab === "playlists"
-        ? `Playlist Export: ${activePlaylist?.name || ""}`
+      activeTab === "pools"
+        ? `Talent Pool Export: ${activePool?.name || ""}`
         : jobDescription,
       stats,
       query,
       sortBy,
-      activeTab === "playlists"
-        ? `Playlist: ${activePlaylist?.name || ""}`
+      activeTab === "pools"
+        ? `Talent Pool: ${activePool?.name || ""}`
         : activeFiltersText
     );
   };
 
-  return <div className="flex-1 flex flex-col border-b border-borderline bg-canvas min-h-0 overflow-hidden">
+  return (
+    <div className="flex-1 flex flex-col border-b border-borderline bg-canvas min-h-0 overflow-hidden">
       <div className="px-4 py-4 sm:px-6 sm:pt-6 sm:pb-4 border-b border-borderline/80 flex flex-col gap-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-slate-500 font-mono">
-              {activeTab === "shortlist" ? "Shortlist Console" : "Watchlist Console"}
+              {activeTab === "shortlist" ? "Shortlist Console" : "Talent Pool Console"}
             </p>
             <h2 className="text-xl font-bold text-white mt-1">
-              {activeTab === "shortlist" ? "Ranked Shortlist" : "Recruiter Playlists"}
+              {activeTab === "shortlist" ? "Ranked Shortlist" : "Talent Pools"}
             </h2>
           </div>
           
           <div className="flex items-center gap-3 flex-wrap">
-            {/* Playlist vs Shortlist Tab Switcher */}
+            {/* Pools vs Shortlist Tab Switcher */}
             <div className="flex border border-slate-800 bg-slate-950 p-0.5 rounded-none shrink-0 font-mono">
               <button
                 type="button"
                 onClick={() => {
                   setActiveTab("shortlist");
-                  setSelectedPlaylistId(null);
+                  setSelectedPoolId(null);
                 }}
                 className={`px-3.5 py-1.5 text-xs transition-all duration-200 rounded-none font-bold uppercase tracking-wider ${
                   activeTab === "shortlist"
@@ -279,25 +280,25 @@ const ResultsPanel = ({
               <button
                 type="button"
                 onClick={() => {
-                  setActiveTab("playlists");
-                  setSelectedPlaylistId(null);
+                  setActiveTab("pools");
+                  setSelectedPoolId(null);
                 }}
                 className={`px-3.5 py-1.5 text-xs transition-all duration-200 rounded-none font-bold uppercase tracking-wider flex items-center gap-1.5 ${
-                  activeTab === "playlists"
+                  activeTab === "pools"
                     ? "bg-slate-800 text-slate-100 font-bold border border-slate-700"
                     : "text-slate-500 hover:text-slate-300 border border-transparent"
                 }`}
               >
-                <span>Playlists</span>
+                <span>Talent Pools</span>
                 <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-slate-950 border border-slate-800 text-slate-400">
-                  {playlists.length}
+                  {talentPools.length}
                 </span>
               </button>
             </div>
 
             {/* Export buttons */}
             {((activeTab === "shortlist" && rankedResults.length > 0) || 
-              (activeTab === "playlists" && selectedPlaylistId && playlistCandidatesFiltered.length > 0)) && (
+              (activeTab === "pools" && selectedPoolId && poolCandidatesFiltered.length > 0)) && (
               <div className="flex items-center gap-1.5">
                 <span className="px-2.5 py-1 bg-slate-900 border border-slate-800 text-slate-400 font-mono text-xs rounded-none">
                   {activeList.length} matching
@@ -339,7 +340,7 @@ const ResultsPanel = ({
 
         {/* Stats Grid */}
         {((activeTab === "shortlist" && rankedResults.length > 0) || 
-          (activeTab === "playlists" && selectedPlaylistId && playlistCandidatesFiltered.length > 0)) && (
+          (activeTab === "pools" && selectedPoolId && poolCandidatesFiltered.length > 0)) && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="bg-slate-950/40 border border-slate-900 p-3 shadow-md shadow-black/10 rounded-none">
               <p className="text-[10px] uppercase font-mono tracking-wider text-slate-500">
@@ -364,30 +365,30 @@ const ResultsPanel = ({
           </div>
         )}
 
-        {/* Playlist Creation Panel */}
-        {activeTab === "playlists" && selectedPlaylistId === null && (
+        {/* Talent Pool Creation Panel */}
+        {activeTab === "pools" && selectedPoolId === null && (
           <div className="flex flex-col gap-3">
             <form 
               onSubmit={(e) => {
                 e.preventDefault();
-                const name = newPlaylistName.trim();
+                const name = newPoolName.trim();
                 if (!name) return;
-                if (playlists.some(p => p.name.toLowerCase() === name.toLowerCase())) {
-                  setCreationError("A playlist with this name already exists.");
+                if (talentPools.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+                  setCreationError("A talent pool with this name already exists.");
                   return;
                 }
                 setCreationError("");
-                onCreatePlaylist(name);
-                setNewPlaylistName("");
+                onCreateTalentPool(name);
+                setNewPoolName("");
               }} 
               className="flex gap-2 items-end font-mono"
             >
               <div className="flex-1">
-                <p className="text-[10px] uppercase font-mono tracking-wider text-slate-500 mb-1.5">Create New Playlist</p>
+                <p className="text-[10px] uppercase font-mono tracking-wider text-slate-500 mb-1.5">Create New Talent Pool</p>
                 <input
-                  value={newPlaylistName}
+                  value={newPoolName}
                   onChange={(e) => {
-                    setNewPlaylistName(e.target.value);
+                    setNewPoolName(e.target.value);
                     setCreationError("");
                   }}
                   placeholder="e.g., Immediate Frontend Hires"
@@ -397,7 +398,7 @@ const ResultsPanel = ({
               </div>
               <button
                 type="submit"
-                disabled={!newPlaylistName.trim()}
+                disabled={!newPoolName.trim()}
                 className="bg-emerald hover:bg-emerald/90 disabled:opacity-30 disabled:hover:bg-emerald text-midnight font-bold px-5 py-2 text-xs uppercase tracking-wider transition-all duration-200 h-[32px] shrink-0"
               >
                 + Create
@@ -410,7 +411,7 @@ const ResultsPanel = ({
         )}
 
         {/* Search, Sort and Filters */}
-        {(! (activeTab === "playlists" && selectedPlaylistId === null)) && (
+        {(! (activeTab === "pools" && selectedPoolId === null)) && (
           <div className="flex flex-col gap-3">
             <div className="flex gap-2 flex-wrap items-center">
               <div className="flex-1 min-w-[200px] relative">
@@ -541,38 +542,38 @@ const ResultsPanel = ({
           </div>
         )}
 
-        {/* Playlists Grid (when no playlist selected) */}
-        {!isLoading && activeTab === "playlists" && selectedPlaylistId === null && (
+        {/* Talent Pools Grid (when no pool selected) */}
+        {!isLoading && activeTab === "pools" && selectedPoolId === null && (
           <div className="p-6">
-            {playlists.length === 0 ? (
+            {talentPools.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center border border-dashed border-slate-900 bg-slate-950/20">
-                <p className="text-[10px] text-slate-500 font-mono uppercase tracking-wider">No Playlists Configured</p>
-                <p className="text-xs text-slate-600 mt-1 font-mono">Create folder matrix using input form above.</p>
+                <p className="text-[10px] text-slate-500 font-mono uppercase tracking-wider">No Talent Pools Configured</p>
+                <p className="text-xs text-slate-600 mt-1 font-mono">Create a talent pool above to begin watchlisting candidates.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {playlists.map((playlist) => (
+                {talentPools.map((pool) => (
                   <div
-                    key={playlist.id}
-                    onClick={() => setSelectedPlaylistId(playlist.id)}
+                    key={pool.id}
+                    onClick={() => setSelectedPoolId(pool.id)}
                     className="group border border-slate-900 hover:border-slate-800 bg-slate-950/40 p-4 transition-all duration-300 flex flex-col justify-between h-32 cursor-pointer relative"
                   >
                     <div>
                       <div className="flex items-start justify-between gap-2">
                         <h4 className="text-sm font-bold text-slate-200 group-hover:text-emerald transition-colors font-mono line-clamp-1">
-                          {playlist.name}
+                          {pool.name}
                         </h4>
-                        {playlist.id !== "default-watchlist" && (
+                        {pool.id !== "default-watchlist" && (
                           <button
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (window.confirm(`Are you sure you want to delete the playlist "${playlist.name}"?`)) {
-                                onDeletePlaylist(playlist.id);
+                              if (window.confirm(`Are you sure you want to delete the talent pool "${pool.name}"?`)) {
+                                onDeleteTalentPool(pool.id);
                               }
                             }}
                             className="text-slate-600 hover:text-rose-400 p-1 transition-colors"
-                            title="Delete Playlist"
+                            title="Delete Talent Pool"
                           >
                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -581,12 +582,12 @@ const ResultsPanel = ({
                         )}
                       </div>
                       <p className="text-[10px] text-slate-500 mt-1.5 font-mono">
-                        Created: {new Date(playlist.createdAt).toLocaleDateString()}
+                        Created: {new Date(pool.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                     
                     <div className="flex items-center justify-between border-t border-slate-900/60 pt-2.5 mt-2 font-mono text-[10px]">
-                      <span className="text-slate-400">{playlist.candidates.length} Profiles</span>
+                      <span className="text-slate-400">{pool.candidates.length} Profiles</span>
                       <span className="text-emerald group-hover:translate-x-1 transition-transform">Browse →</span>
                     </div>
                   </div>
@@ -596,44 +597,44 @@ const ResultsPanel = ({
           </div>
         )}
 
-        {/* Playlist Sub-Header */}
-        {!isLoading && activeTab === "playlists" && selectedPlaylistId !== null && (
+        {/* Talent Pool Sub-Header */}
+        {!isLoading && activeTab === "pools" && selectedPoolId !== null && (
           <div className="px-6 py-3 border-b border-slate-900/50 bg-slate-950/40 flex items-center justify-between font-mono shrink-0">
             <button
               type="button"
               onClick={() => {
-                setSelectedPlaylistId(null);
+                setSelectedPoolId(null);
                 setQuery(""); // reset search
               }}
               className="text-xs text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1.5"
             >
-              <span>← Back to Playlists</span>
+              <span>← Back to Talent Pools</span>
             </button>
             <div className="text-[10px] text-slate-500">
-              Viewing Playlist: <strong className="text-slate-300 font-semibold">{playlists.find(p => p.id === selectedPlaylistId)?.name}</strong>
+              Viewing Talent Pool: <strong className="text-slate-300 font-semibold">{talentPools.find(p => p.id === selectedPoolId)?.name}</strong>
             </div>
           </div>
         )}
 
         {/* Empty Lists States */}
-        {!isLoading && activeList.length === 0 && (activeTab === "shortlist" || selectedPlaylistId !== null) && (
+        {!isLoading && activeList.length === 0 && (activeTab === "shortlist" || selectedPoolId !== null) && (
           <div className="flex flex-col items-center justify-center p-12 text-center h-48">
             <svg className="h-8 w-8 text-slate-700 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
             <p className="text-sm text-slate-400 font-semibold">
-              {activeTab === "playlists" ? "Playlist is empty" : "No active candidates found"}
+              {activeTab === "pools" ? "Talent pool is empty" : "No active candidates found"}
             </p>
             <p className="text-xs text-slate-500 mt-1 font-mono">
-              {activeTab === "playlists"
-                ? "Classify candidate profiles into this playlist from the discovery cards or explorer modal."
+              {activeTab === "pools"
+                ? "Classify candidate profiles into this talent pool from the discovery cards or details modal."
                 : "Configure inputs or adjust filters to construct the candidate hierarchy."}
             </p>
           </div>
         )}
 
         {/* Results Matrix Render */}
-        {!isLoading && activeList.length > 0 && (activeTab === "shortlist" || selectedPlaylistId !== null) && (
+        {!isLoading && activeList.length > 0 && (activeTab === "shortlist" || selectedPoolId !== null) && (
           viewMode === "podium" ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start max-w-5xl mx-auto py-8 px-6 font-mono">
               
@@ -651,11 +652,11 @@ const ResultsPanel = ({
                       result={activeList[1].result}
                       candidate={activeList[1].candidate}
                       onSelect={() => onSelectCandidate(activeList[1].result.candidate_id)}
-                      playlists={playlists}
-                      onOpenPlaylistManager={onOpenPlaylistManager}
-                      inPlaylistView={activeTab === "playlists"}
-                      playlistId={selectedPlaylistId}
-                      onRemoveCandidateFromPlaylist={onRemoveCandidateFromPlaylist}
+                      talentPools={talentPools}
+                      onOpenPoolManager={onOpenPoolManager}
+                      inPoolView={activeTab === "pools"}
+                      poolId={selectedPoolId}
+                      onRemoveCandidateFromTalentPool={onRemoveCandidateFromTalentPool}
                     />
                   </div>
                 ) : (
@@ -679,11 +680,11 @@ const ResultsPanel = ({
                       result={activeList[0].result}
                       candidate={activeList[0].candidate}
                       onSelect={() => onSelectCandidate(activeList[0].result.candidate_id)}
-                      playlists={playlists}
-                      onOpenPlaylistManager={onOpenPlaylistManager}
-                      inPlaylistView={activeTab === "playlists"}
-                      playlistId={selectedPlaylistId}
-                      onRemoveCandidateFromPlaylist={onRemoveCandidateFromPlaylist}
+                      talentPools={talentPools}
+                      onOpenPoolManager={onOpenPoolManager}
+                      inPoolView={activeTab === "pools"}
+                      poolId={selectedPoolId}
+                      onRemoveCandidateFromTalentPool={onRemoveCandidateFromTalentPool}
                     />
                   </div>
                 ) : (
@@ -707,11 +708,11 @@ const ResultsPanel = ({
                       result={activeList[2].result}
                       candidate={activeList[2].candidate}
                       onSelect={() => onSelectCandidate(activeList[2].result.candidate_id)}
-                      playlists={playlists}
-                      onOpenPlaylistManager={onOpenPlaylistManager}
-                      inPlaylistView={activeTab === "playlists"}
-                      playlistId={selectedPlaylistId}
-                      onRemoveCandidateFromPlaylist={onRemoveCandidateFromPlaylist}
+                      talentPools={talentPools}
+                      onOpenPoolManager={onOpenPoolManager}
+                      inPoolView={activeTab === "pools"}
+                      poolId={selectedPoolId}
+                      onRemoveCandidateFromTalentPool={onRemoveCandidateFromTalentPool}
                     />
                   </div>
                 ) : (
@@ -730,18 +731,19 @@ const ResultsPanel = ({
                   result={result}
                   candidate={candidate}
                   onSelect={() => onSelectCandidate(result.candidate_id)}
-                  playlists={playlists}
-                  onOpenPlaylistManager={onOpenPlaylistManager}
-                  inPlaylistView={activeTab === "playlists"}
-                  playlistId={selectedPlaylistId}
-                  onRemoveCandidateFromPlaylist={onRemoveCandidateFromPlaylist}
+                  talentPools={talentPools}
+                  onOpenPoolManager={onOpenPoolManager}
+                  inPoolView={activeTab === "pools"}
+                  poolId={selectedPoolId}
+                  onRemoveCandidateFromTalentPool={onRemoveCandidateFromTalentPool}
                 />
               ))}
             </div>
           )
         )}
       </div>
-    </div>;
+    </div>
+  );
 };
 
 export default ResultsPanel;

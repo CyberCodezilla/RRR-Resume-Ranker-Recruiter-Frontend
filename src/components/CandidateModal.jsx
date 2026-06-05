@@ -116,8 +116,8 @@ const CandidateModal = ({
   candidate,
   result,
   onClose,
-  playlists = [],
-  onOpenPlaylistManager,
+  talentPools = [],
+  onOpenPoolManager,
 }) => {
   const profile = candidate.profile || {};
   const signals = candidate.redrob_signals || {};
@@ -126,7 +126,7 @@ const CandidateModal = ({
   const skillScores = signals.skill_assessment_scores || {};
   const skills = candidate.skills || [];
 
-  const isInAnyPlaylist = playlists.some((p) =>
+  const isInAnyPool = talentPools.some((p) =>
     p.candidates.some((c) => c.candidate_id === candidate.candidate_id)
   );
 
@@ -173,20 +173,20 @@ const CandidateModal = ({
             <p className="text-xs text-slate-400 mt-1 font-mono">{profile.headline}</p>
           </div>
           <div className="flex items-center gap-3">
-            {onOpenPlaylistManager && (
+            {onOpenPoolManager && (
               <button
                 type="button"
-                onClick={(e) => onOpenPlaylistManager(candidate, result, e)}
+                onClick={(e) => onOpenPoolManager(candidate, result, e)}
                 className={`px-4 py-2 text-xs uppercase tracking-wider font-mono border transition-all duration-200 rounded-none flex items-center gap-2 ${
-                  isInAnyPlaylist
+                  isInAnyPool
                     ? "border-emerald/40 bg-emerald/10 text-emerald hover:bg-emerald/20"
                     : "border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:border-slate-700"
                 }`}
               >
-                <svg className="h-3.5 w-3.5" fill={isInAnyPlaylist ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <svg className="h-3.5 w-3.5" fill={isInAnyPool ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
                 </svg>
-                <span>{isInAnyPlaylist ? "In Playlist" : "Add to Playlist"}</span>
+                <span>{isInAnyPool ? "In Talent Pool" : "Add to Pool"}</span>
               </button>
             )}
             <button

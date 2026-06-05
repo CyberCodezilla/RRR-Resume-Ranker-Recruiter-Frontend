@@ -1,36 +1,35 @@
 import { useState } from "react";
 
-const PlaylistAddModal = ({
-  playlistCandidate,
-  playlists,
+const TalentPoolAddModal = ({
+  poolCandidate,
+  talentPools,
   onClose,
-  onCreatePlaylist,
-  onAddCandidateToPlaylist,
-  onRemoveCandidateFromPlaylist,
+  onCreateTalentPool,
+  onAddCandidateToTalentPool,
+  onRemoveCandidateFromTalentPool,
 }) => {
-  const [newListName, setNewListName] = useState("");
+  const [newPoolName, setNewPoolName] = useState("");
   const [creationError, setCreationError] = useState("");
 
-  if (!playlistCandidate) return null;
+  if (!poolCandidate) return null;
 
-  const { candidate, result } = playlistCandidate;
+  const { candidate, result } = poolCandidate;
   const candidateId = candidate.candidate_id;
   const candidateName = candidate.profile?.anonymized_name || "Unknown Candidate";
 
   const handleCreate = (e) => {
     e.preventDefault();
-    const trimmed = newListName.trim();
+    const trimmed = newPoolName.trim();
     if (!trimmed) return;
 
-    // Check for duplicates
-    if (playlists.some((p) => p.name.toLowerCase() === trimmed.toLowerCase())) {
-      setCreationError("A playlist with this name already exists.");
+    if (talentPools.some((p) => p.name.toLowerCase() === trimmed.toLowerCase())) {
+      setCreationError("A talent pool with this name already exists.");
       return;
     }
 
     setCreationError("");
-    onCreatePlaylist(trimmed, playlistCandidate);
-    setNewListName("");
+    onCreateTalentPool(trimmed, poolCandidate);
+    setNewPoolName("");
   };
 
   return (
@@ -43,7 +42,7 @@ const PlaylistAddModal = ({
         <div className="flex justify-between items-start border-b border-slate-900 pb-3 mb-4">
           <div>
             <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Classification Node</p>
-            <h3 className="text-sm font-bold text-white mt-1">Manage Playlists</h3>
+            <h3 className="text-sm font-bold text-white mt-1">Manage Talent Pools</h3>
           </div>
           <button
             type="button"
@@ -61,17 +60,17 @@ const PlaylistAddModal = ({
           <p className="text-[11px] text-slate-400 mt-0.5 truncate">{candidate.profile?.headline || "No Headline"}</p>
         </div>
 
-        {/* Playlists Checklist */}
+        {/* Talent Pools Checklist */}
         <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-1 mb-4 border-b border-slate-900 pb-4">
-          <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2">Assign to Lists</p>
-          {playlists.length === 0 ? (
-            <p className="text-xs text-slate-600 italic">No playlists created yet.</p>
+          <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2">Assign to Pools</p>
+          {talentPools.length === 0 ? (
+            <p className="text-xs text-slate-600 italic">No talent pools created yet.</p>
           ) : (
-            playlists.map((playlist) => {
-              const isMember = playlist.candidates.some((c) => c.candidate_id === candidateId);
+            talentPools.map((pool) => {
+              const isMember = pool.candidates.some((c) => c.candidate_id === candidateId);
               return (
                 <label
-                  key={playlist.id}
+                  key={pool.id}
                   className="flex items-center justify-between p-2 hover:bg-slate-900/40 border border-transparent hover:border-slate-900 cursor-pointer select-none transition-colors"
                 >
                   <div className="flex items-center gap-2.5">
@@ -80,17 +79,17 @@ const PlaylistAddModal = ({
                       checked={isMember}
                       onChange={(e) => {
                         if (e.target.checked) {
-                          onAddCandidateToPlaylist(playlist.id, candidate, result);
+                          onAddCandidateToTalentPool(pool.id, candidate, result);
                         } else {
-                          onRemoveCandidateFromPlaylist(playlist.id, candidateId);
+                          onRemoveCandidateFromTalentPool(pool.id, candidateId);
                         }
                       }}
                       className="accent-emerald h-3.5 w-3.5 bg-slate-950 border-slate-800 rounded-none focus:ring-0 focus:ring-offset-0"
                     />
-                    <span className="text-xs text-slate-300 font-medium">{playlist.name}</span>
+                    <span className="text-xs text-slate-300 font-medium">{pool.name}</span>
                   </div>
                   <span className="text-[10px] text-slate-600 bg-slate-950 border border-slate-900 px-1.5 py-0.5 rounded-none">
-                    {playlist.candidates.length} profiles
+                    {pool.candidates.length} profiles
                   </span>
                 </label>
               );
@@ -98,24 +97,24 @@ const PlaylistAddModal = ({
           )}
         </div>
 
-        {/* Create New Playlist Form */}
+        {/* Create New Talent Pool Form */}
         <form onSubmit={handleCreate} className="space-y-2">
-          <p className="text-[10px] text-slate-500 uppercase tracking-wider">Create New Playlist</p>
+          <p className="text-[10px] text-slate-500 uppercase tracking-wider">Create New Talent Pool</p>
           <div className="flex gap-2">
             <input
               type="text"
-              value={newListName}
+              value={newPoolName}
               onChange={(e) => {
-                setNewListName(e.target.value);
+                setNewPoolName(e.target.value);
                 setCreationError("");
               }}
-              placeholder="e.g. Frontend Prospects"
+              placeholder="e.g. Sourced Backend Engineers"
               maxLength={40}
               className="flex-1 bg-slate-950 border border-slate-800 px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-cobalt/60 transition-all rounded-none placeholder-slate-700"
             />
             <button
               type="submit"
-              disabled={!newListName.trim()}
+              disabled={!newPoolName.trim()}
               className="bg-cobalt hover:bg-cobalt/90 disabled:opacity-40 disabled:hover:bg-cobalt text-white font-bold px-3 py-2 text-xs transition-colors rounded-none whitespace-nowrap"
             >
               Create & Add
@@ -141,4 +140,4 @@ const PlaylistAddModal = ({
   );
 };
 
-export default PlaylistAddModal;
+export default TalentPoolAddModal;

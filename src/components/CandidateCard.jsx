@@ -6,11 +6,11 @@ const CandidateCard = ({
   result,
   candidate,
   onSelect,
-  playlists = [],
-  onOpenPlaylistManager,
-  inPlaylistView = false,
-  playlistId = null,
-  onRemoveCandidateFromPlaylist,
+  talentPools = [],
+  onOpenPoolManager,
+  inPoolView = false,
+  poolId = null,
+  onRemoveCandidateFromTalentPool,
 }) => {
   const profile = candidate?.profile || {};
   const breakdown = deriveBreakdown(result, candidate);
@@ -25,7 +25,7 @@ const CandidateCard = ({
     return "text-slate-400 border-slate-800 bg-slate-900/40";
   };
 
-  const isInAnyPlaylist = playlists.some((p) =>
+  const isInAnyPool = talentPools.some((p) =>
     p.candidates.some((c) => c.candidate_id === result.candidate_id)
   );
 
@@ -53,32 +53,32 @@ const CandidateCard = ({
           </p>
         </div>
         <div className="flex items-center gap-2.5 shrink-0">
-          {onOpenPlaylistManager && (
+          {onOpenPoolManager && (
             <button
               type="button"
-              onClick={(e) => onOpenPlaylistManager(candidate, result, e)}
+              onClick={(e) => onOpenPoolManager(candidate, result, e)}
               className={`p-1.5 border transition-all duration-200 rounded-none ${
-                isInAnyPlaylist
+                isInAnyPool
                   ? "border-emerald/40 bg-emerald/10 text-emerald hover:bg-emerald/20"
                   : "border-slate-800 bg-slate-950/60 text-slate-500 hover:text-slate-300 hover:border-slate-700"
               }`}
-              title={isInAnyPlaylist ? "Manage Playlists (Saved)" : "Add to Playlist"}
+              title={isInAnyPool ? "Manage Talent Pools (Saved)" : "Add to Talent Pool"}
             >
-              <svg className="h-4 w-4" fill={isInAnyPlaylist ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <svg className="h-4 w-4" fill={isInAnyPool ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
               </svg>
             </button>
           )}
 
-          {inPlaylistView && onRemoveCandidateFromPlaylist && playlistId && (
+          {inPoolView && onRemoveCandidateFromTalentPool && poolId && (
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                onRemoveCandidateFromPlaylist(playlistId, result.candidate_id);
+                onRemoveCandidateFromTalentPool(poolId, result.candidate_id);
               }}
               className="p-1.5 border border-rose-900/40 bg-rose-950/20 text-rose-400 hover:bg-rose-950/50 hover:border-rose-700 transition-all duration-200 rounded-none"
-              title="Remove from Playlist"
+              title="Remove from Talent Pool"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

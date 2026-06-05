@@ -3,16 +3,16 @@ import InputPanel from "./components/InputPanel";
 import ResultsPanel from "./components/ResultsPanel";
 import CandidateModal from "./components/CandidateModal";
 import ComplianceTray from "./components/ComplianceTray";
-import PlaylistAddModal from "./components/PlaylistAddModal";
+import TalentPoolAddModal from "./components/TalentPoolAddModal";
 import { rankCandidates } from "./api/rankApi";
 import { computeFallbackRanking, normalizeRankedResults } from "./utils/scoreUtils";
 import {
-  getPlaylists,
-  createPlaylist,
-  deletePlaylist,
-  addCandidateToPlaylist,
-  removeCandidateFromPlaylist,
-} from "./utils/playlistUtils";
+  getTalentPools,
+  createTalentPool,
+  deleteTalentPool,
+  addCandidateToTalentPool,
+  removeCandidateFromTalentPool,
+} from "./utils/talentPoolUtils";
 
 const App = () => {
   const [jobDescription, setJobDescription] = useState("");
@@ -21,45 +21,45 @@ const App = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [selectedCandidateId, setSelectedCandidateId] = useState(null);
-  const [playlists, setPlaylists] = useState([]);
-  const [playlistCandidate, setPlaylistCandidate] = useState(null);
+  const [talentPools, setTalentPools] = useState([]);
+  const [poolCandidate, setPoolCandidate] = useState(null);
 
   useEffect(() => {
-    setPlaylists(getPlaylists());
+    setTalentPools(getTalentPools());
   }, []);
 
-  const handleCreatePlaylist = (name, autoAddCandidate = null) => {
+  const handleCreateTalentPool = (name, autoAddCandidate = null) => {
     const trimmed = name.trim();
     if (!trimmed) return;
     
-    let updated = createPlaylist(trimmed);
+    let updated = createTalentPool(trimmed);
     if (autoAddCandidate) {
-      const newPlaylist = updated.find(p => p.name.toLowerCase() === trimmed.toLowerCase());
-      if (newPlaylist) {
-        updated = addCandidateToPlaylist(newPlaylist.id, autoAddCandidate.candidate, autoAddCandidate.result);
+      const newPool = updated.find(p => p.name.toLowerCase() === trimmed.toLowerCase());
+      if (newPool) {
+        updated = addCandidateToTalentPool(newPool.id, autoAddCandidate.candidate, autoAddCandidate.result);
       }
     }
-    setPlaylists(updated);
+    setTalentPools(updated);
   };
 
-  const handleDeletePlaylist = (playlistId) => {
-    const updated = deletePlaylist(playlistId);
-    setPlaylists(updated);
+  const handleDeleteTalentPool = (poolId) => {
+    const updated = deleteTalentPool(poolId);
+    setTalentPools(updated);
   };
 
-  const handleAddCandidateToPlaylist = (playlistId, candidate, result) => {
-    const updated = addCandidateToPlaylist(playlistId, candidate, result);
-    setPlaylists(updated);
+  const handleAddCandidateToTalentPool = (poolId, candidate, result) => {
+    const updated = addCandidateToTalentPool(poolId, candidate, result);
+    setTalentPools(updated);
   };
 
-  const handleRemoveCandidateFromPlaylist = (playlistId, candidateId) => {
-    const updated = removeCandidateFromPlaylist(playlistId, candidateId);
-    setPlaylists(updated);
+  const handleRemoveCandidateFromTalentPool = (poolId, candidateId) => {
+    const updated = removeCandidateFromTalentPool(poolId, candidateId);
+    setTalentPools(updated);
   };
 
-  const handleOpenPlaylistManager = (candidate, result, e) => {
+  const handleOpenPoolManager = (candidate, result, e) => {
     if (e) e.stopPropagation();
-    setPlaylistCandidate({ candidate, result });
+    setPoolCandidate({ candidate, result });
   };
 
   // Dynamic layout resizing states
@@ -243,11 +243,11 @@ const App = () => {
                   isLoading={isLoading}
                   onSelectCandidate={setSelectedCandidateId}
                   jobDescription={jobDescription}
-                  playlists={playlists}
-                  onOpenPlaylistManager={handleOpenPlaylistManager}
-                  onCreatePlaylist={handleCreatePlaylist}
-                  onDeletePlaylist={handleDeletePlaylist}
-                  onRemoveCandidateFromPlaylist={handleRemoveCandidateFromPlaylist}
+                  talentPools={talentPools}
+                  onOpenPoolManager={handleOpenPoolManager}
+                  onCreateTalentPool={handleCreateTalentPool}
+                  onDeleteTalentPool={handleDeleteTalentPool}
+                  onRemoveCandidateFromTalentPool={handleRemoveCandidateFromTalentPool}
                 />
               </div>
 
@@ -289,11 +289,11 @@ const App = () => {
                     isLoading={isLoading}
                     onSelectCandidate={setSelectedCandidateId}
                     jobDescription={jobDescription}
-                    playlists={playlists}
-                    onOpenPlaylistManager={handleOpenPlaylistManager}
-                    onCreatePlaylist={handleCreatePlaylist}
-                    onDeletePlaylist={handleDeletePlaylist}
-                    onRemoveCandidateFromPlaylist={handleRemoveCandidateFromPlaylist}
+                    talentPools={talentPools}
+                    onOpenPoolManager={handleOpenPoolManager}
+                    onCreateTalentPool={handleCreateTalentPool}
+                    onDeleteTalentPool={handleDeleteTalentPool}
+                    onRemoveCandidateFromTalentPool={handleRemoveCandidateFromTalentPool}
                   />
                 </div>
                 {/* Collapsible compliance details for mobile */}
@@ -317,19 +317,19 @@ const App = () => {
           candidate={selectedCandidate}
           result={selectedResult}
           onClose={() => setSelectedCandidateId(null)}
-          playlists={playlists}
-          onOpenPlaylistManager={handleOpenPlaylistManager}
+          talentPools={talentPools}
+          onOpenPoolManager={handleOpenPoolManager}
         />
       )}
 
-      {playlistCandidate && (
-        <PlaylistAddModal
-          playlistCandidate={playlistCandidate}
-          playlists={playlists}
-          onClose={() => setPlaylistCandidate(null)}
-          onCreatePlaylist={handleCreatePlaylist}
-          onAddCandidateToPlaylist={handleAddCandidateToPlaylist}
-          onRemoveCandidateFromPlaylist={handleRemoveCandidateFromPlaylist}
+      {poolCandidate && (
+        <TalentPoolAddModal
+          poolCandidate={poolCandidate}
+          talentPools={talentPools}
+          onClose={() => setPoolCandidate(null)}
+          onCreateTalentPool={handleCreateTalentPool}
+          onAddCandidateToTalentPool={handleAddCandidateToTalentPool}
+          onRemoveCandidateFromTalentPool={handleRemoveCandidateFromTalentPool}
         />
       )}
     </div>
