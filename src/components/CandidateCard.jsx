@@ -2,7 +2,16 @@ import ScoreBar from "./ScoreBar";
 import { detectTimelineAnomaly, deriveBreakdown, deriveReasoning } from "../utils/scoreUtils";
 import { formatScore, formatPercent } from "../utils/formatters";
 
-const CandidateCard = ({ result, candidate, onSelect }) => {
+const CandidateCard = ({
+  result,
+  candidate,
+  onSelect,
+  playlists = [],
+  onOpenPlaylistManager,
+  inPlaylistView = false,
+  playlistId = null,
+  onRemoveCandidateFromPlaylist,
+}) => {
   const profile = candidate?.profile || {};
   const breakdown = deriveBreakdown(result, candidate);
   const reasoning = deriveReasoning(result, candidate);
@@ -16,11 +25,14 @@ const CandidateCard = ({ result, candidate, onSelect }) => {
     return "text-slate-400 border-slate-800 bg-slate-900/40";
   };
 
+  const isInAnyPlaylist = playlists.some((p) =>
+    p.candidates.some((c) => c.candidate_id === result.candidate_id)
+  );
+
   return (
-    <button
-      type="button"
+    <div
       onClick={onSelect}
-      className="w-full text-left px-6 py-5 hover:bg-slate-900/30 border-l-2 border-l-transparent hover:border-l-emerald/70 transition-all duration-300 ease-in-out bg-canvas rounded-none"
+      className="w-full text-left px-6 py-5 hover:bg-slate-900/30 border-l-2 border-l-transparent hover:border-l-emerald/70 transition-all duration-300 ease-in-out bg-canvas rounded-none cursor-pointer"
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
@@ -40,11 +52,46 @@ const CandidateCard = ({ result, candidate, onSelect }) => {
             {profile.current_title} · {profile.current_company} · {profile.location}
           </p>
         </div>
-        <div className="flex flex-col items-end">
-          <span className="text-[9px] uppercase font-mono tracking-widest text-slate-500">Fit Index</span>
-          <span className={`inline-flex items-center px-2 py-1 rounded-none border font-mono text-base font-bold mt-1.5 shadow-sm ${getScoreColor(result.score)}`}>
-            {formatScore(result.score)}
-          </span>
+        <div className="flex items-center gap-2.5 shrink-0">
+          {onOpenPlaylistManager && (
+            <button
+              type="button"
+              onClick={(e) => onOpenPlaylistManager(candidate, result, e)}
+              className={`p-1.5 border transition-all duration-200 rounded-none ${
+                isInAnyPlaylist
+                  ? "border-emerald/40 bg-emerald/10 text-emerald hover:bg-emerald/20"
+                  : "border-slate-800 bg-slate-950/60 text-slate-500 hover:text-slate-300 hover:border-slate-700"
+              }`}
+              title={isInAnyPlaylist ? "Manage Playlists (Saved)" : "Add to Playlist"}
+            >
+              <svg className="h-4 w-4" fill={isInAnyPlaylist ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+              </svg>
+            </button>
+          )}
+
+          {inPlaylistView && onRemoveCandidateFromPlaylist && playlistId && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemoveCandidateFromPlaylist(playlistId, result.candidate_id);
+              }}
+              className="p-1.5 border border-rose-900/40 bg-rose-950/20 text-rose-400 hover:bg-rose-950/50 hover:border-rose-700 transition-all duration-200 rounded-none"
+              title="Remove from Playlist"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          )}
+
+          <div className="flex flex-col items-end">
+            <span className="text-[9px] uppercase font-mono tracking-widest text-slate-500">Fit Index</span>
+            <span className={`inline-flex items-center px-2 py-1 rounded-none border font-mono text-base font-bold mt-1.5 shadow-sm ${getScoreColor(result.score)}`}>
+              {formatScore(result.score)}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -85,7 +132,7 @@ const CandidateCard = ({ result, candidate, onSelect }) => {
           <span>Employment history chronologies discrepancy detected.</span>
         </div>
       )}
-    </button>
+    </div>
   );
 };
 

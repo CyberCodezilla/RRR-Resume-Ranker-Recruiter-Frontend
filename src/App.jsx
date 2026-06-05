@@ -3,8 +3,16 @@ import InputPanel from "./components/InputPanel";
 import ResultsPanel from "./components/ResultsPanel";
 import CandidateModal from "./components/CandidateModal";
 import ComplianceTray from "./components/ComplianceTray";
+import PlaylistAddModal from "./components/PlaylistAddModal";
 import { rankCandidates } from "./api/rankApi";
 import { computeFallbackRanking, normalizeRankedResults } from "./utils/scoreUtils";
+import {
+  getPlaylists,
+  createPlaylist,
+  deletePlaylist,
+  addCandidateToPlaylist,
+  removeCandidateFromPlaylist,
+} from "./utils/playlistUtils";
 
 const App = () => {
   const [jobDescription, setJobDescription] = useState("");
@@ -13,6 +21,46 @@ const App = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [selectedCandidateId, setSelectedCandidateId] = useState(null);
+  const [playlists, setPlaylists] = useState([]);
+  const [playlistCandidate, setPlaylistCandidate] = useState(null);
+
+  useEffect(() => {
+    setPlaylists(getPlaylists());
+  }, []);
+
+  const handleCreatePlaylist = (name, autoAddCandidate = null) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    
+    let updated = createPlaylist(trimmed);
+    if (autoAddCandidate) {
+      const newPlaylist = updated.find(p => p.name.toLowerCase() === trimmed.toLowerCase());
+      if (newPlaylist) {
+        updated = addCandidateToPlaylist(newPlaylist.id, autoAddCandidate.candidate, autoAddCandidate.result);
+      }
+    }
+    setPlaylists(updated);
+  };
+
+  const handleDeletePlaylist = (playlistId) => {
+    const updated = deletePlaylist(playlistId);
+    setPlaylists(updated);
+  };
+
+  const handleAddCandidateToPlaylist = (playlistId, candidate, result) => {
+    const updated = addCandidateToPlaylist(playlistId, candidate, result);
+    setPlaylists(updated);
+  };
+
+  const handleRemoveCandidateFromPlaylist = (playlistId, candidateId) => {
+    const updated = removeCandidateFromPlaylist(playlistId, candidateId);
+    setPlaylists(updated);
+  };
+
+  const handleOpenPlaylistManager = (candidate, result, e) => {
+    if (e) e.stopPropagation();
+    setPlaylistCandidate({ candidate, result });
+  };
 
   // Dynamic layout resizing states
   const [leftWidth, setLeftWidth] = useState(40); // left panel width in percentage (default 40%)
@@ -195,6 +243,11 @@ const App = () => {
                   isLoading={isLoading}
                   onSelectCandidate={setSelectedCandidateId}
                   jobDescription={jobDescription}
+                  playlists={playlists}
+                  onOpenPlaylistManager={handleOpenPlaylistManager}
+                  onCreatePlaylist={handleCreatePlaylist}
+                  onDeletePlaylist={handleDeletePlaylist}
+                  onRemoveCandidateFromPlaylist={handleRemoveCandidateFromPlaylist}
                 />
               </div>
 
@@ -236,6 +289,11 @@ const App = () => {
                     isLoading={isLoading}
                     onSelectCandidate={setSelectedCandidateId}
                     jobDescription={jobDescription}
+                    playlists={playlists}
+                    onOpenPlaylistManager={handleOpenPlaylistManager}
+                    onCreatePlaylist={handleCreatePlaylist}
+                    onDeletePlaylist={handleDeletePlaylist}
+                    onRemoveCandidateFromPlaylist={handleRemoveCandidateFromPlaylist}
                   />
                 </div>
                 {/* Collapsible compliance details for mobile */}
@@ -259,6 +317,19 @@ const App = () => {
           candidate={selectedCandidate}
           result={selectedResult}
           onClose={() => setSelectedCandidateId(null)}
+          playlists={playlists}
+          onOpenPlaylistManager={handleOpenPlaylistManager}
+        />
+      )}
+
+      {playlistCandidate && (
+        <PlaylistAddModal
+          playlistCandidate={playlistCandidate}
+          playlists={playlists}
+          onClose={() => setPlaylistCandidate(null)}
+          onCreatePlaylist={handleCreatePlaylist}
+          onAddCandidateToPlaylist={handleAddCandidateToPlaylist}
+          onRemoveCandidateFromPlaylist={handleRemoveCandidateFromPlaylist}
         />
       )}
     </div>

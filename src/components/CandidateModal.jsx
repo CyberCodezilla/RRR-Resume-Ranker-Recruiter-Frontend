@@ -112,13 +112,23 @@ const parseReasoning = (reasonText) => {
   return { title, experience, skillsCount, responseVelocity };
 };
 
-const CandidateModal = ({ candidate, result, onClose }) => {
+const CandidateModal = ({
+  candidate,
+  result,
+  onClose,
+  playlists = [],
+  onOpenPlaylistManager,
+}) => {
   const profile = candidate.profile || {};
   const signals = candidate.redrob_signals || {};
   const breakdown = deriveBreakdown(result, candidate);
   const reasoning = deriveReasoning(result, candidate);
   const skillScores = signals.skill_assessment_scores || {};
   const skills = candidate.skills || [];
+
+  const isInAnyPlaylist = playlists.some((p) =>
+    p.candidates.some((c) => c.candidate_id === candidate.candidate_id)
+  );
 
   const skillRows = skills.map((skill) => ({
     name: skill.name,
@@ -162,13 +172,31 @@ const CandidateModal = ({ candidate, result, onClose }) => {
             <h3 className="text-xl font-bold text-white mt-1">{profile.anonymized_name}</h3>
             <p className="text-xs text-slate-400 mt-1 font-mono">{profile.headline}</p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-xs uppercase tracking-wider font-mono bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 rounded-none transition-all duration-200"
-          >
-            Close
-          </button>
+          <div className="flex items-center gap-3">
+            {onOpenPlaylistManager && (
+              <button
+                type="button"
+                onClick={(e) => onOpenPlaylistManager(candidate, result, e)}
+                className={`px-4 py-2 text-xs uppercase tracking-wider font-mono border transition-all duration-200 rounded-none flex items-center gap-2 ${
+                  isInAnyPlaylist
+                    ? "border-emerald/40 bg-emerald/10 text-emerald hover:bg-emerald/20"
+                    : "border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:border-slate-700"
+                }`}
+              >
+                <svg className="h-3.5 w-3.5" fill={isInAnyPlaylist ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                </svg>
+                <span>{isInAnyPlaylist ? "In Playlist" : "Add to Playlist"}</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-xs uppercase tracking-wider font-mono bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 rounded-none transition-all duration-200"
+            >
+              Close
+            </button>
+          </div>
         </div>
 
         {/* Five-Dimensional Component Score Breakdown & Weight Alignment */}
