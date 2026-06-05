@@ -194,6 +194,7 @@ const App = () => {
                   candidates={candidates}
                   isLoading={isLoading}
                   onSelectCandidate={setSelectedCandidateId}
+                  jobDescription={jobDescription}
                 />
               </div>
 
@@ -239,6 +240,7 @@ const App = () => {
                     candidates={candidates}
                     isLoading={isLoading}
                     onSelectCandidate={setSelectedCandidateId}
+                    jobDescription={jobDescription}
                   />
                 </div>
                 {/* Collapsible compliance details for mobile */}
