@@ -95,18 +95,80 @@ const CandidateCard = ({
         </div>
       </div>
 
-      <div className="mt-4 bg-slate-950/20 border border-slate-900/60 rounded-none p-3">
+      <div className="relative group/score mt-4 bg-slate-950/20 border border-slate-900/60 rounded-none p-3 hover:bg-slate-900/10 transition-all duration-300">
         <ScoreBar
           segments={[
-            { label: "Skill Congruence", value: breakdown.skill, color: "bg-emerald" },
-            { label: "Semantic Sequence", value: breakdown.semantic, color: "bg-cobalt" },
-            { label: "Platform Activity", value: breakdown.activity, color: "bg-slate-500" },
+            { label: "Skill Match", value: breakdown.skill_match, weight: 0.35, colorCode: "#10B981" },
+            { label: "Career Fit", value: breakdown.career_fit, weight: 0.25, colorCode: "#3B82F6" },
+            { label: "Signal Modifier", value: breakdown.signal_modifier, weight: 0.15, colorCode: "#6366F1" },
+            { label: "Education", value: breakdown.education, weight: 0.15, colorCode: "#14B8A6" },
+            { label: "Availability", value: breakdown.availability, weight: 0.10, colorCode: "#D97706" }
           ]}
         />
-        <div className="grid grid-cols-3 text-[10px] text-slate-500 mt-2 font-mono">
-          <span className="text-left">Skill: <strong className="text-slate-400">{formatPercent(breakdown.skill)}</strong></span>
-          <span className="text-center">Semantic: <strong className="text-slate-400">{formatPercent(breakdown.semantic)}</strong></span>
-          <span className="text-right">Activity: <strong className="text-slate-400">{formatPercent(breakdown.activity)}</strong></span>
+        <div className="grid grid-cols-5 text-[9px] text-slate-500 mt-2 font-mono gap-1">
+          <span className="text-left truncate" title={`Skill Match: ${formatPercent(breakdown.skill_match)}`}>Skill: <strong className="text-[#10B981]">{formatPercent(breakdown.skill_match)}</strong></span>
+          <span className="text-center truncate" title={`Career Fit: ${formatPercent(breakdown.career_fit)}`}>Career: <strong className="text-[#3B82F6]">{formatPercent(breakdown.career_fit)}</strong></span>
+          <span className="text-center truncate" title={`Signal Modifier: ${formatPercent(breakdown.signal_modifier)}`}>Signal: <strong className="text-[#6366F1]">{formatPercent(breakdown.signal_modifier)}</strong></span>
+          <span className="text-center truncate" title={`Education: ${formatPercent(breakdown.education)}`}>Edu: <strong className="text-[#14B8A6]">{formatPercent(breakdown.education)}</strong></span>
+          <span className="text-right truncate" title={`Availability: ${formatPercent(breakdown.availability)}`}>Avail: <strong className="text-[#D97706]">{formatPercent(breakdown.availability)}</strong></span>
+        </div>
+
+        {/* Hover Tooltip Frame */}
+        <div className="absolute left-1/2 bottom-[105%] -translate-x-1/2 w-72 bg-[#1E222B] border border-slate-800 p-4 shadow-2xl rounded-none opacity-0 scale-95 pointer-events-none group-hover/score:opacity-100 group-hover/score:scale-100 transition-all duration-200 z-30 font-mono text-[11px] text-slate-300">
+          <div className="border-b border-slate-800 pb-2 mb-2">
+            <span className="text-xs font-bold text-slate-100">SCORE BREAKDOWN COMPOSITION</span>
+          </div>
+          <div className="space-y-1.5">
+            <div className="flex justify-between items-center">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: "#10B981" }} />
+                Skill Match (35%):
+              </span>
+              <span>
+                <strong className="text-[#10B981]">{formatPercent(breakdown.skill_match * 0.35)}</strong>
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: "#3B82F6" }} />
+                Career Fit (25%):
+              </span>
+              <span>
+                <strong className="text-[#3B82F6]">{formatPercent(breakdown.career_fit * 0.25)}</strong>
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: "#6366F1" }} />
+                Signal Mod (15%):
+              </span>
+              <span>
+                <strong className="text-[#6366F1]">{formatPercent(breakdown.signal_modifier * 0.15)}</strong>
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: "#14B8A6" }} />
+                Education (15%):
+              </span>
+              <span>
+                <strong className="text-[#14B8A6]">{formatPercent(breakdown.education * 0.15)}</strong>
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: "#D97706" }} />
+                Availability (10%):
+              </span>
+              <span>
+                <strong className="text-[#D97706]">{formatPercent(breakdown.availability * 0.10)}</strong>
+              </span>
+            </div>
+          </div>
+          <div className="border-t border-slate-800 pt-2 mt-2 flex justify-between items-center font-bold text-slate-100">
+            <span>Overall Fit Index:</span>
+            <span className="text-emerald">{formatPercent(result.score)}</span>
+          </div>
         </div>
       </div>
 

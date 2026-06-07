@@ -157,11 +157,11 @@ const CandidateModal = ({
     return "bg-slate-900 text-slate-500 border-slate-800";
   };
 
-  const skillMatch = breakdown.skill;
-  const careerFit = breakdown.semantic;
-  const signalModifier = breakdown.activity;
-  const educationScore = getEducationScore(candidate.education);
-  const availabilityScore = getAvailabilityScore(signals);
+  const skillMatch = breakdown.skill_match;
+  const careerFit = breakdown.career_fit;
+  const signalModifier = breakdown.signal_modifier;
+  const educationScore = breakdown.education;
+  const availabilityScore = breakdown.availability;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex justify-end">
@@ -202,22 +202,78 @@ const CandidateModal = ({
         {/* Five-Dimensional Component Score Breakdown & Weight Alignment */}
         <div className="px-6 py-4 border-b border-slate-900 bg-slate-950/60">
           <div className="flex flex-col gap-2">
-            <div className="flex justify-between items-center flex-wrap gap-x-4 gap-y-1 text-xs font-mono">
+            <div className="flex justify-between items-center flex-wrap gap-x-4 gap-y-2 text-xs font-mono">
               <span className="text-slate-400 mr-2">OVERALL FIT INDEX: <strong className="text-emerald text-sm">{formatScore(result?.score)}</strong></span>
-              <span className="text-slate-500">Skill Match Layer (skill_match, weight: 0.35): <strong className="text-emerald">{formatPercent(skillMatch)}</strong></span>
-              <span className="text-slate-500">Career Narrative fit (career_fit, weight: 0.25): <strong className="text-cobalt">{formatPercent(careerFit)}</strong></span>
-              <span className="text-slate-500">Activity Signals Modifier (signal_modifier, weight: 0.15): <strong className="text-slate-300">{formatPercent(signalModifier)}</strong></span>
-              <span className="text-slate-500">Institutional Prestige (education, weight: 0.15): <strong className="text-indigo-400">{formatPercent(educationScore)}</strong></span>
-              <span className="text-slate-500">Immediate Availability (availability, weight: 0.10): <strong className="text-amber">{formatPercent(availabilityScore)}</strong></span>
+              <span className="text-slate-500">Skill Match (35%): <strong className="text-[#10B981]">{formatPercent(skillMatch)}</strong></span>
+              <span className="text-slate-500">Career Fit (25%): <strong className="text-[#3B82F6]">{formatPercent(careerFit)}</strong></span>
+              <span className="text-slate-500">Signal Mod (15%): <strong className="text-[#6366F1]">{formatPercent(signalModifier)}</strong></span>
+              <span className="text-slate-500">Education (15%): <strong className="text-[#14B8A6]">{formatPercent(educationScore)}</strong></span>
+              <span className="text-slate-500">Availability (10%): <strong className="text-[#D97706]">{formatPercent(availabilityScore)}</strong></span>
             </div>
             
             {/* Embedded Visual Score Breakdown Chart */}
-            <div className="h-2 w-full bg-slate-900 overflow-hidden flex border border-slate-900 mt-1 rounded-none">
-              <div className="h-full bg-emerald" style={{ width: `${skillMatch * 35}%` }} title={`Skill Match Layer (skill_match, weight: 0.35): ${formatPercent(skillMatch)}`} />
-              <div className="h-full bg-cobalt" style={{ width: `${careerFit * 25}%` }} title={`Career Narrative fit (career_fit, weight: 0.25): ${formatPercent(careerFit)}`} />
-              <div className="h-full bg-slate-500" style={{ width: `${signalModifier * 15}%` }} title={`Activity Signals Modifier (signal_modifier, weight: 0.15): ${formatPercent(signalModifier)}`} />
-              <div className="h-full bg-indigo-600" style={{ width: `${educationScore * 15}%` }} title={`Institutional Prestige (education, weight: 0.15): ${formatPercent(educationScore)}`} />
-              <div className="h-full bg-amber" style={{ width: `${availabilityScore * 10}%` }} title={`Immediate Availability (availability, weight: 0.10): ${formatPercent(availabilityScore)}`} />
+            <div className="h-2.5 w-full bg-slate-900 overflow-hidden flex border border-slate-900 mt-1 rounded-none">
+              <div className="h-full bg-[#10B981]" style={{ width: `${skillMatch * 35}%` }} title={`Skill Match Layer (skill_match, weight: 35%): ${formatPercent(skillMatch)}`} />
+              <div className="h-full bg-[#3B82F6]" style={{ width: `${careerFit * 25}%` }} title={`Career Narrative fit (career_fit, weight: 25%): ${formatPercent(careerFit)}`} />
+              <div className="h-full bg-[#6366F1]" style={{ width: `${signalModifier * 15}%` }} title={`Activity Signals Modifier (signal_modifier, weight: 15%): ${formatPercent(signalModifier)}`} />
+              <div className="h-full bg-[#14B8A6]" style={{ width: `${educationScore * 15}%` }} title={`Institutional Prestige (education, weight: 15%): ${formatPercent(educationScore)}`} />
+              <div className="h-full bg-[#D97706]" style={{ width: `${availabilityScore * 10}%` }} title={`Immediate Availability (availability, weight: 10%): ${formatPercent(availabilityScore)}`} />
+            </div>
+
+            {/* Dedicated Metric Visualization Grid Row for Hidden Parameters */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3 pt-3 border-t border-slate-900 text-xs font-mono">
+              {/* Institutional Prestige Section (education - 15%) */}
+              <div className="bg-slate-950 border border-slate-900 p-3 rounded-none">
+                <div className="flex justify-between items-center border-b border-slate-900 pb-1.5 mb-2">
+                  <span className="text-[#14B8A6] font-bold uppercase tracking-wider">Education Analysis (15% Weight)</span>
+                  <span className="text-slate-400 font-bold">Score: {formatPercent(educationScore)}</span>
+                </div>
+                <div className="space-y-1.5 max-h-[72px] overflow-y-auto pr-1 custom-scrollbar">
+                  {(!candidate.education || candidate.education.length === 0) ? (
+                    <span className="text-slate-500 italic text-[11px]">No academic qualifications registered</span>
+                  ) : (
+                    candidate.education.map((edu, idx) => (
+                      <div key={idx} className="flex justify-between items-center gap-2 text-[11px]">
+                        <span className="text-slate-300 truncate">
+                          {edu.degree || "Degree"} in {edu.field_of_study || "Field"}
+                        </span>
+                        <span className="px-1.5 py-0.5 bg-slate-900 border border-slate-800 text-[#14B8A6] text-[9px] font-bold rounded-none shrink-0 uppercase">
+                          {edu.tier || "unknown"}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Operational Availability Node (availability - 10%) */}
+              <div className="bg-slate-950 border border-slate-900 p-3 rounded-none">
+                <div className="flex justify-between items-center border-b border-slate-900 pb-1.5 mb-2">
+                  <span className="text-[#D97706] font-bold uppercase tracking-wider">Availability & Signals (10% Weight)</span>
+                  <span className="text-slate-400 font-bold">Score: {formatPercent(availabilityScore)}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px]">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Notice Period:</span>
+                    <span className={`font-bold ${signals.notice_period_days <= 30 ? "text-emerald animate-pulse" : "text-slate-300"}`}>
+                      {signals.notice_period_days ?? "--"} days
+                      {signals.notice_period_days <= 30 && " (Immediate)"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Open to Work:</span>
+                    <span className="text-slate-300 font-bold">{signals.open_to_work_flag ? "YES" : "NO"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Relocatable:</span>
+                    <span className="text-slate-300 font-bold">{signals.willing_to_relocate ? "YES" : "NO"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Expected Salary:</span>
+                    <span className="text-slate-300 font-bold">{formatRange(signals.expected_salary_range_inr_lpa)}</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
