@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from "react";
 import ScoreBar from "./ScoreBar";
 import { detectTimelineAnomaly, deriveBreakdown, deriveReasoning } from "../utils/scoreUtils";
 import { formatScore, formatPercent } from "../utils/formatters";
@@ -17,6 +18,49 @@ const CandidateCard = ({
   const reasoning = deriveReasoning(result, candidate);
   const anomaly = detectTimelineAnomaly(candidate);
   const topSkills = (candidate?.skills || []).slice(0, 4);
+
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipCoords, setTooltipCoords] = useState({ top: 0, left: 0, placeBelow: false });
+  const containerRef = useRef(null);
+
+  const updateTooltipPosition = () => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const tooltipHeight = 190; // estimated height of tooltip
+    const placeBelow = rect.top - tooltipHeight < 10;
+    
+    setTooltipCoords({
+      top: placeBelow ? rect.bottom + 8 : rect.top - 8,
+      left: rect.left + rect.width / 2,
+      placeBelow,
+    });
+  };
+
+  const handleMouseEnter = () => {
+    updateTooltipPosition();
+    setShowTooltip(true);
+  };
+
+  const handleMouseMove = () => {
+    updateTooltipPosition();
+  };
+
+  const handleMouseLeave = () => {
+    setShowTooltip(false);
+  };
+
+  useEffect(() => {
+    if (!showTooltip) return;
+    const handleScroll = () => {
+      updateTooltipPosition();
+    };
+    window.addEventListener("scroll", handleScroll, true);
+    window.addEventListener("resize", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll, true);
+      window.removeEventListener("resize", handleScroll);
+    };
+  }, [showTooltip]);
 
   const getScoreColor = (score) => {
     const val = score <= 1 ? score * 100 : score;
@@ -95,7 +139,13 @@ const CandidateCard = ({
         </div>
       </div>
 
-      <div className="relative group/score mt-4 bg-slate-950/20 border border-slate-900/60 rounded-none p-3 hover:bg-slate-900/10 transition-all duration-300">
+      <div
+        ref={containerRef}
+        onMouseEnter={handleMouseEnter}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        className="relative group/score mt-4 bg-slate-950/20 border border-slate-900/60 rounded-none p-3 hover:bg-slate-900/10 transition-all duration-300"
+      >
         <ScoreBar
           segments={[
             { label: "Skill Match", value: breakdown.skill_match, weight: 0.35, colorCode: "#10B981" },
@@ -114,62 +164,73 @@ const CandidateCard = ({
         </div>
 
         {/* Hover Tooltip Frame */}
-        <div className="absolute left-1/2 bottom-[105%] -translate-x-1/2 w-72 bg-[#1E222B] border border-slate-800 p-4 shadow-2xl rounded-none opacity-0 scale-95 pointer-events-none group-hover/score:opacity-100 group-hover/score:scale-100 transition-all duration-200 z-30 font-mono text-[11px] text-slate-300">
-          <div className="border-b border-slate-800 pb-2 mb-2">
-            <span className="text-xs font-bold text-slate-100">SCORE BREAKDOWN COMPOSITION</span>
+        {showTooltip && (
+          <div
+            style={{
+              position: "fixed",
+              top: `${tooltipCoords.top}px`,
+              left: `${tooltipCoords.left}px`,
+              transform: tooltipCoords.placeBelow ? "translate(-50%, 0)" : "translate(-50%, -100%)",
+              zIndex: 9999,
+            }}
+            className="w-72 bg-[#1E222B] border border-slate-800 p-4 shadow-2xl rounded-none pointer-events-none font-mono text-[11px] text-slate-300"
+          >
+            <div className="border-b border-slate-800 pb-2 mb-2">
+              <span className="text-xs font-bold text-slate-100">SCORE BREAKDOWN COMPOSITION</span>
+            </div>
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: "#10B981" }} />
+                  Skill Match (35%):
+                </span>
+                <span>
+                  <strong className="text-[#10B981]">{formatPercent(breakdown.skill_match * 0.35)}</strong>
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: "#3B82F6" }} />
+                  Career Fit (25%):
+                </span>
+                <span>
+                  <strong className="text-[#3B82F6]">{formatPercent(breakdown.career_fit * 0.25)}</strong>
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: "#6366F1" }} />
+                  Signal Mod (15%):
+                </span>
+                <span>
+                  <strong className="text-[#6366F1]">{formatPercent(breakdown.signal_modifier * 0.15)}</strong>
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: "#14B8A6" }} />
+                  Education (15%):
+                </span>
+                <span>
+                  <strong className="text-[#14B8A6]">{formatPercent(breakdown.education * 0.15)}</strong>
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: "#D97706" }} />
+                  Availability (10%):
+                </span>
+                <span>
+                  <strong className="text-[#D97706]">{formatPercent(breakdown.availability * 0.10)}</strong>
+                </span>
+              </div>
+            </div>
+            <div className="border-t border-slate-800 pt-2 mt-2 flex justify-between items-center font-bold text-slate-100">
+              <span>Overall Fit Index:</span>
+              <span className="text-emerald">{formatPercent(result.score)}</span>
+            </div>
           </div>
-          <div className="space-y-1.5">
-            <div className="flex justify-between items-center">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: "#10B981" }} />
-                Skill Match (35%):
-              </span>
-              <span>
-                <strong className="text-[#10B981]">{formatPercent(breakdown.skill_match * 0.35)}</strong>
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: "#3B82F6" }} />
-                Career Fit (25%):
-              </span>
-              <span>
-                <strong className="text-[#3B82F6]">{formatPercent(breakdown.career_fit * 0.25)}</strong>
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: "#6366F1" }} />
-                Signal Mod (15%):
-              </span>
-              <span>
-                <strong className="text-[#6366F1]">{formatPercent(breakdown.signal_modifier * 0.15)}</strong>
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: "#14B8A6" }} />
-                Education (15%):
-              </span>
-              <span>
-                <strong className="text-[#14B8A6]">{formatPercent(breakdown.education * 0.15)}</strong>
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: "#D97706" }} />
-                Availability (10%):
-              </span>
-              <span>
-                <strong className="text-[#D97706]">{formatPercent(breakdown.availability * 0.10)}</strong>
-              </span>
-            </div>
-          </div>
-          <div className="border-t border-slate-800 pt-2 mt-2 flex justify-between items-center font-bold text-slate-100">
-            <span>Overall Fit Index:</span>
-            <span className="text-emerald">{formatPercent(result.score)}</span>
-          </div>
-        </div>
+        )}
       </div>
 
       <p className="mt-3 text-xs font-mono text-slate-400 bg-slate-950/40 border border-slate-900/80 rounded-none p-2.5 line-clamp-2 leading-relaxed">
