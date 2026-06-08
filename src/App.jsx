@@ -4,6 +4,7 @@ import ResultsPanel from "./components/ResultsPanel";
 import CandidateModal from "./components/CandidateModal";
 import ComplianceTray from "./components/ComplianceTray";
 import TalentPoolAddModal from "./components/TalentPoolAddModal";
+import PassphraseGate from "./components/PassphraseGate";
 import { rankCandidates } from "./api/rankApi";
 import { computeFallbackRanking, normalizeRankedResults } from "./utils/scoreUtils";
 import {
@@ -12,9 +13,32 @@ import {
   deleteTalentPool,
   addCandidateToTalentPool,
   removeCandidateFromTalentPool,
+  setPassphrase,
+  clearPassphrase,
 } from "./utils/talentPoolUtils";
 
 const App = () => {
+  // ─── Auth gate ────────────────────────────────────────────────────────────
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  const handleAuthenticate = (phrase) => {
+    setPassphrase(phrase);           // store passphrase in memory only
+    setTalentPools(getTalentPools()); // decrypt & load this recruiter's pools
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    clearPassphrase();
+    setIsAuthenticated(false);
+    setTalentPools([]);
+    setJobDescription("");
+    setCandidates([]);
+    setRankedResults([]);
+    setSelectedCandidateId(null);
+    setPoolCandidate(null);
+  };
+
+  // ─── Main state ───────────────────────────────────────────────────────────
   const [jobDescription, setJobDescription] = useState("");
   const [candidates, setCandidates] = useState([]);
   const [rankedResults, setRankedResults] = useState([]);
@@ -24,9 +48,7 @@ const App = () => {
   const [talentPools, setTalentPools] = useState([]);
   const [poolCandidate, setPoolCandidate] = useState(null);
 
-  useEffect(() => {
-    setTalentPools(getTalentPools());
-  }, []);
+  // Talent pools are loaded after authentication — no automatic load on mount
 
   const handleCreateTalentPool = (name, autoAddCandidate = null) => {
     const trimmed = name.trim();
@@ -165,9 +187,14 @@ const App = () => {
     }
   };
 
+  // ─── Passphrase gate ─────────────────────────────────────────────────────
+  if (!isAuthenticated) {
+    return <PassphraseGate onAuthenticate={handleAuthenticate} />;
+  }
+
   return (
     <div className="h-screen overflow-hidden bg-midnight flex flex-col">
-      {/* Mobile Tab Switcher */}
+      {/* Mobile Tab Switcher + Logout */}
       {!isDesktop && (
         <div className="flex bg-slate-950 border-b border-borderline h-12 shrink-0">
           <button
@@ -197,6 +224,16 @@ const App = () => {
             <span className="px-1.5 py-0.5 rounded-full text-[9px] bg-slate-950 border border-slate-800 text-slate-400 font-mono">
               {rankedResults.length}
             </span>
+          </button>
+          {/* Logout / switch workspace */}
+          <button
+            type="button"
+            id="logout-btn"
+            onClick={handleLogout}
+            title="Lock workspace & switch passphrase"
+            className="px-3 text-slate-500 hover:text-emerald-400 transition-colors text-lg"
+          >
+            🔒
           </button>
         </div>
       )}
